@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Convex
+.convex/
+convex/_generated/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Changesets
+# (keep .changeset/config.json, ignore generated changelogs)
+CHANGELOG.md
