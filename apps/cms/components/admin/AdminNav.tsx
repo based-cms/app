@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs'
+import { OrganizationSwitcher, UserButton, useOrganization } from '@clerk/nextjs'
 import { EnvToggle } from './EnvToggle'
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const projectTabs = [
@@ -22,9 +22,16 @@ const projectTabs = [
   { key: 'files', label: 'Files', path: '/files' },
 ] as const
 
+function Slash() {
+  return (
+    <span className="mx-1.5 text-xl font-extralight text-border select-none">/</span>
+  )
+}
+
 export function AdminNav() {
   const pathname = usePathname()
   const { isAuthenticated } = useConvexAuth()
+  const { organization } = useOrganization()
 
   // Extract projectId from URL: /admin/:projectId/...
   const segments = pathname.split('/')
@@ -59,6 +66,7 @@ export function AdminNav() {
     <header className="sticky top-0 z-50 border-b bg-background">
       {/* Main nav row */}
       <div className="flex h-14 items-center px-4">
+        {/* Left: breadcrumb */}
         <nav className="flex min-w-0 items-center">
           {/* Logo */}
           <Link
@@ -70,22 +78,30 @@ export function AdminNav() {
             </span>
           </Link>
 
-          <span className="mx-2 text-xl font-extralight text-border select-none">/</span>
+          <Slash />
 
-          {/* Org switcher */}
-          <div className="shrink-0">
+          {/* Org: clickable name + switcher icon */}
+          <div className="flex shrink-0 items-center">
+            <Link
+              href="/admin"
+              className="rounded-md px-2 py-1 text-[13px] font-medium transition-colors hover:bg-accent"
+            >
+              {organization?.name ?? '\u2026'}
+            </Link>
+            {/* Clerk OrganizationSwitcher as a compact icon trigger */}
             <OrganizationSwitcher
               hidePersonal
               appearance={{
                 elements: {
                   rootBox: 'flex items-center',
                   organizationSwitcherTrigger: cn(
-                    'rounded-md px-2 py-1 text-[13px] font-medium',
-                    'hover:bg-accent transition-colors',
+                    'rounded-md p-1 hover:bg-accent transition-colors',
                     'shadow-none focus:shadow-none',
                     'border-none focus:outline-none',
-                    'after:hidden'
+                    'after:hidden',
+                    '[&>span]:hidden [&>img]:hidden [&>div]:hidden',
                   ),
+                  organizationSwitcherTriggerIcon: 'mx-0 w-3.5 h-3.5 text-muted-foreground',
                 },
               }}
             />
@@ -94,14 +110,11 @@ export function AdminNav() {
           {/* Project selector */}
           {projectId && (
             <>
-              <span className="mx-2 text-xl font-extralight text-border select-none">/</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className={cn(
-                    'flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1',
-                    'text-[13px] font-medium transition-colors hover:bg-accent',
-                    'outline-none'
-                  )}
+              <Slash />
+              <div className="flex min-w-0 items-center">
+                <Link
+                  href={`/admin/${projectId}`}
+                  className="flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-[13px] font-medium transition-colors hover:bg-accent"
                 >
                   {project?.faviconUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -114,48 +127,57 @@ export function AdminNav() {
                   <span className="max-w-[180px] truncate">
                     {project?.name ?? '\u2026'}
                   </span>
-                  <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-64">
-                  {(projects ?? []).map((p) => (
-                    <DropdownMenuItem key={p._id} asChild>
-                      <Link
-                        href={`/admin/${p._id}`}
-                        className="flex items-center gap-2.5"
-                      >
-                        {p.faviconUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={p.faviconUrl}
-                            alt=""
-                            className="h-4 w-4 shrink-0 rounded"
-                          />
-                        ) : (
-                          <span
-                            className="h-4 w-4 shrink-0 rounded"
-                            style={{
-                              backgroundColor: p.primaryColor || '#e5e5e5',
-                            }}
-                          />
-                        )}
-                        <span className="flex-1 truncate text-[13px]">
-                          {p.name}
-                        </span>
-                        {p._id === projectId && (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-foreground" />
-                        )}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground outline-none"
+                  >
+                    <ChevronsUpDown className="h-3.5 w-3.5" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64">
+                    {(projects ?? []).map((p) => (
+                      <DropdownMenuItem key={p._id} asChild>
+                        <Link
+                          href={`/admin/${p._id}`}
+                          className="flex items-center gap-2.5"
+                        >
+                          {p.faviconUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={p.faviconUrl}
+                              alt=""
+                              className="h-4 w-4 shrink-0 rounded"
+                            />
+                          ) : (
+                            <span
+                              className="h-4 w-4 shrink-0 rounded"
+                              style={{
+                                backgroundColor: p.primaryColor || '#e5e5e5',
+                              }}
+                            />
+                          )}
+                          <span className="flex-1 truncate text-[13px]">
+                            {p.name}
+                          </span>
+                          {p._id === projectId && (
+                            <Check className="h-3.5 w-3.5 shrink-0 text-foreground" />
+                          )}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </>
           )}
+
+          {/* Env toggle — left side, after breadcrumb */}
+          <Slash />
+          <EnvToggle />
         </nav>
 
-        {/* Right side */}
-        <div className="ml-auto flex items-center gap-3">
-          <EnvToggle />
+        {/* Right: user only */}
+        <div className="ml-auto">
           <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </div>
