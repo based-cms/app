@@ -55,6 +55,8 @@ based-cms/
 │       │   └── polar.ts
 │       └── app/
 │           ├── (auth)/sign-in/
+│           ├── onboarding/              ← self-service onboarding wizard
+│           ├── superadmin/              ← cross-org admin (gated by SUPERADMIN_USER_ID)
 │           └── admin/
 │               └── [projectId]/
 │                   ├── content/[type]/
@@ -118,6 +120,12 @@ These are separate tables intentionally. `section_registry` is written by the cl
 package on boot (schema definition). `section_content` is written by CMS users (actual data).
 This decouples schema evolution from content editing.
 
+### Archived Sections
+When a section type is removed from client code, `registerSections()` (via `syncPublic`)
+marks it as archived (`archivedAt` timestamp) rather than deleting it. Archived sections
+appear greyed in the admin sidebar with Restore / Delete permanently options. Content is
+preserved until explicitly deleted.
+
 ### File Storage: R2 Only
 All media goes through Convex R2 component (`@convex-dev/r2`). Never use Convex native storage.
 Uploaded files are indexed in the `media` table (r2Key, url, filename, mimeType, size).
@@ -171,6 +179,7 @@ section_registry: defineTable({
   sectionType: v.string(),
   label: v.string(),
   fieldsSchema: v.string(),  // JSON-serialized field definitions
+  archivedAt: v.optional(v.number()), // Unix ms — set when section removed from client code
 }).index("by_project", ["projectId"])
   .index("by_project_type", ["projectId", "sectionType"])
 
@@ -280,6 +289,9 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 - [x] Phase 4 — CMS admin UI (dynamic forms, env toggle, media) ✅
 - [x] Phase 5 — NPM package (defineCMSSection, z, useSection + full type inference) ✅
 - [x] Phase 6 — Final pass (all docs complete and accurate) ✅
+- [x] Sprint 2a — Archived sections (soft-delete on client code removal) ✅
+- [x] Sprint 2b — Self-service onboarding (`/onboarding`) + superadmin route ✅
+- [x] Sprint 2c — `getSection` SSR helper in cms-client ✅
 
 ---
 
@@ -325,6 +337,7 @@ cd apps/cms && npx convex deploy
 | `apps/cms/convex/convex.config.ts` | R2 + Polar component registration |
 | `packages/cms-client/src/token.ts` | bcms_ token encode/decode |
 | `packages/cms-client/src/provider.tsx` | `<CMSProvider>` wrapping ConvexProvider |
+| `packages/cms-client/src/client.ts` | `createCMSClient` — registerSections + getSection SSR |
 | `packages/cms-client/src/z.ts` | Custom z namespace — field type helpers |
 | `packages/cms-client/src/defineSection.ts` | Type inference engine for section fields |
 | `packages/create-based-cms/src/index.ts` | CLI entry point for `npx create-based-cms` |

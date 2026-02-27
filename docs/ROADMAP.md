@@ -46,11 +46,10 @@
 
 ### Features
 
-- [ ] **Archived sections (not hard-deleted)**
-      — When a section type is removed from the client codebase, mark it as "archived" in
-      `section_registry` rather than leaving it as a ghost entry.
-      — Archived sections appear collapsed/greyed in the admin sidebar with a "Delete permanently"
-      option. Prevents accidental data loss from a code change or PR merge.
+- [x] **Archived sections (not hard-deleted)**
+      — `archivedAt` field on `section_registry`. `syncPublic` mutation archives sections
+      no longer in client code. Admin UI shows archived sections greyed with Restore /
+      Delete permanently. Content preserved until explicit deletion.
 
 - [ ] **Clearer Live/Test environment separation in the UI**
       — Make the environment toggle more visually prominent (color coding, banner, etc.).
@@ -58,10 +57,10 @@
       Next step is hardening UX and guardrails (clear banners, safer migration states, fewer
       accidental cross-environment edits).
 
-- [ ] **Self-service org onboarding** (see `TODO.md` #5)
-      — `/onboarding` flow for new users: name workspace, create first project, copy env vars.
-      — Clerk: limit to 1 org per user (free tier).
-      — `/superadmin` route restricted to developer's Clerk userId.
+- [x] **Self-service org onboarding**
+      — `/onboarding` multi-step wizard: org creation → project name/slug → API keys display.
+      — `/superadmin` route gated by `SUPERADMIN_USER_ID` env var (cross-org project list).
+      — Empty-state "Get started" button in admin links to onboarding.
 
 - [x] **Rename: better-cms → based-cms**
       — Update all `package.json` names, import paths, env var prefixes (`BASED-CMS-*` →
@@ -79,7 +78,7 @@
 - [ ] Fix hardcoded `eu-west-1` region in `token.ts` (see `TODO.md` #1)
 - [ ] Fix folder delete confirmation + file orphan warning (see `TODO.md` #8)
 - [ ] `create-based-cms` CLI: bake in real CMS URL at build time (see `TODO.md` #7)
-- [ ] `getSection` server helper for SSR (see `TODO.md` #6)
+- [x] `getSection` server helper for SSR — `cms.getSection(section, slug)` via ConvexHttpClient
 
 ---
 
