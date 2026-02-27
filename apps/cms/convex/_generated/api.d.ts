@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as folders from "../folders.js";
 import type * as lib_orgGuard from "../lib/orgGuard.js";
 import type * as media from "../media.js";
 import type * as polar from "../polar.js";
@@ -22,6 +23,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  folders: typeof folders;
   "lib/orgGuard": typeof lib_orgGuard;
   media: typeof media;
   polar: typeof polar;

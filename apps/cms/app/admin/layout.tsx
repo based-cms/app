@@ -3,6 +3,7 @@ import { UserButton } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import { EnvProvider } from '@/components/providers/EnvProvider'
 import { EnvToggle } from '@/components/admin/EnvToggle'
+import { AuthGate } from '@/components/admin/AuthGate'
 
 export default async function AdminLayout({
   children,
@@ -24,7 +25,9 @@ export default async function AdminLayout({
             <UserButton afterSignOutUrl="/sign-in" />
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">
+          <AuthGate>{children}</AuthGate>
+        </main>
       </div>
     </EnvProvider>
   )

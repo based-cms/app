@@ -67,6 +67,20 @@ the action handler since metadata options aren't supported this way.
 
 ---
 
+## [Phase 4] — orgGuard reads `org_id` not `orgId` from Convex identity
+
+**Symptom**: `requireOrgId` throws `No active organization in session` even though the Clerk JWT
+contains `org_id`. Debug token endpoint confirms `org_id` is present in the JWT claims.
+
+**Root cause**: Convex's `getUserIdentity()` returns JWT claims by their **original key names** —
+it does NOT camelCase custom claims. The Clerk JWT uses `org_id` (snake_case), but the code
+was reading `identity.orgId` (camelCase), which is always `undefined`.
+
+**Fix**: Use `(identity as Record<string, unknown>)['org_id']` instead of `identity.orgId`
+in both `requireOrgId` and `assertOrgAccess` in `convex/lib/orgGuard.ts`.
+
+---
+
 ## [Phase 1] — `create-next-app` creates nested `pnpm-workspace.yaml`
 
 **Symptom**: `shadcn init` fails with `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` — cannot resolve `@better-cms/tsconfig@workspace:*` from inside `apps/cms`.
