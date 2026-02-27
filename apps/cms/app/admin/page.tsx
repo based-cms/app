@@ -3,13 +3,15 @@
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Plus, ArrowUpRight } from 'lucide-react'
+import { Plus, ArrowUpRight, Sparkles } from 'lucide-react'
 import { CreateProjectDialog } from '@/components/admin/CreateProjectDialog'
 import { useState, useCallback, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 
 export default function AdminPage() {
+  const router = useRouter()
   const projects = useQuery(api.projects.list)
   const [open, setOpen] = useState(false)
 
@@ -80,15 +82,24 @@ export default function AdminPage() {
               Each project connects to a client website and manages its content
               sections.
             </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-5"
-              onClick={() => setOpen(true)}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              New project
-            </Button>
+            <div className="mt-5 flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => router.push('/onboarding')}
+                className="gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Get started
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpen(true)}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                New project
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="divide-y rounded-xl border">

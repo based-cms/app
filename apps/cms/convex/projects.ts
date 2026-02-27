@@ -89,6 +89,22 @@ export const getBySlug = query({
   },
 })
 
+/** List ALL projects across all orgs — superadmin only */
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Unauthenticated')
+
+    const superadminId = process.env.SUPERADMIN_USER_ID
+    if (!superadminId || identity.subject !== superadminId) {
+      throw new Error('Unauthorized: superadmin access required')
+    }
+
+    return ctx.db.query('projects').collect()
+  },
+})
+
 // ─── Mutations ───────────────────────────────────────────────────────────────
 
 /** Create a new project for the current org */

@@ -1,0 +1,259 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { useMutation } from 'convex/react'
+import { api } from '@/convex/_generated/api'
+import { useOrganization, useOrganizationList, CreateOrganization } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Check, Copy, ArrowRight } from 'lucide-react'
+import { toast } from 'sonner'
+import { Id } from '@/convex/_generated/dataModel'
+
+type Step = 'org' | 'project' | 'keys' | 'done'
+
+export default function OnboardingPage() {
+  const router = useRouter()
+  const { organization } = useOrganization()
+  const { userMemberships } = useOrganizationList({
+    userMemberships: { infinite: true },
+  })
+
+  const hasOrg = !!organization
+  const orgCount = userMemberships?.data?.length ?? 0
+
+  // Skip org step if user already has an org
+  const [step, setStep] = useState<Step>(hasOrg ? 'project' : 'org')
+
+  // Project creation state
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [loading, setLoading] = useState(false)
+  const createProject = useMutation(api.projects.create)
+  const generateToken = useMutation(api.projects.generateRegistrationToken)
+
+  // Keys state
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
+
+  function handleNameChange(value: string) {
+    setName(value)
+    setSlug(value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+  }
+
+  async function handleCreateProject(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || !slug.trim()) return
+    setLoading(true)
+    try {
+      const pid = await createProject({ name: name.trim(), slug: slug.trim() })
+      const tok = await generateToken({ projectId: pid })
+      setProjectId(pid)
+      setToken(tok)
+      setStep('keys')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create project')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyToClipboard = useCallback((text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(label)
+    toast.success(`${label} copied`)
+    setTimeout(() => setCopied(null), 2000)
+  }, [])
+
+  // Build the display key from the deployment name + token
+  const deploymentName = process.env.NEXT_PUBLIC_CONVEX_URL
+    ?.replace('https://', '')
+    .replace('.eu-west-1.convex.cloud', '')
+    .replace('.convex.cloud', '') ?? ''
+  const fullKey = token
+    ? `bcms_live-${btoa(`${deploymentName}.${token}`)}`
+    : ''
+
+  return (
+    <div className="space-y-8 py-10">
+      {/* Progress */}
+      <div className="flex items-center justify-center gap-2">
+        {(['org', 'project', 'keys'] as const).map((s, i) => (
+          <div key={s} className="flex items-center gap-2">
+            <div
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                step === s
+                  ? 'bg-foreground text-background'
+                  : step === 'done' || (['project', 'keys', 'done'].indexOf(step) > i)
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {(['project', 'keys', 'done'].indexOf(step) > i) || step === 'done' ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                i + 1
+              )}
+            </div>
+            {i < 2 && (
+              <div className="h-px w-8 bg-border" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Step 1: Organization */}
+      {step === 'org' && (
+        <div className="space-y-6 text-center">
+          <div>
+            <h1 className="text-xl font-semibold">Create your workspace</h1>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Each workspace is a Clerk organization that isolates your projects.
+            </p>
+          </div>
+          {orgCount >= 1 ? (
+            <div className="space-y-4">
+              <p className="text-sm">
+                You already have a workspace: <strong>{organization?.name}</strong>
+              </p>
+              <Button onClick={() => setStep('project')}>
+                Continue
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <CreateOrganization
+                afterCreateOrganizationUrl="/onboarding"
+                appearance={{
+                  elements: {
+                    rootBox: 'w-full',
+                    card: 'shadow-none border',
+                  },
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 2: Project */}
+      {step === 'project' && (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-xl font-semibold">Create your first project</h1>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Each project maps to a client website.
+            </p>
+          </div>
+          <form onSubmit={handleCreateProject} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Project name</Label>
+              <Input
+                id="name"
+                placeholder="My Website"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="slug">Slug</Label>
+              <Input
+                id="slug"
+                placeholder="my-website"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Public identifier — used as <code>BASED-CMS-SLUG</code> in your client app.
+              </p>
+            </div>
+            <Button type="submit" disabled={loading || !name || !slug} className="w-full">
+              {loading ? 'Creating...' : 'Create project'}
+            </Button>
+          </form>
+        </div>
+      )}
+
+      {/* Step 3: Keys */}
+      {step === 'keys' && (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-xl font-semibold">Your API keys</h1>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Add these to your client project&apos;s <code className="rounded bg-muted px-1 text-[11px]">.env.local</code>
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Label>BASED-CMS-SLUG</Label>
+                <Badge variant="secondary" className="text-[10px]">public</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 truncate rounded-lg border bg-muted/50 px-3 py-2 font-mono text-sm">
+                  {slug}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(slug, 'Slug')}
+                >
+                  {copied === 'Slug' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Label>BASED-CMS-KEY</Label>
+                <Badge variant="secondary" className="text-[10px]">server-only</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 truncate rounded-lg border bg-muted/50 px-3 py-2 font-mono text-xs">
+                  {fullKey}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(fullKey, 'Key')}
+                >
+                  {copied === 'Key' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Keep this secret. Do not prefix with <code>NEXT_PUBLIC_</code>.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <p className="text-[12px] text-amber-700 dark:text-amber-400">
+              Save these now — the key won&apos;t be shown again after you leave this page.
+              You can regenerate it from project settings.
+            </p>
+          </div>
+
+          <Button
+            className="w-full"
+            onClick={() => {
+              if (projectId) router.push(`/admin/${projectId}`)
+            }}
+          >
+            Go to project
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
