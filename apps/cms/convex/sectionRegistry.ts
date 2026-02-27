@@ -85,6 +85,9 @@ export const upsert = mutation({
  * Public upsert — called by cms.registerSections() from a client Next.js project.
  * Auth is via registrationToken instead of Clerk (this runs server-side, not in-browser).
  * Idempotent: safe to call on every app boot.
+ *
+ * The client sends the UUID `key` extracted from the bcms_ token.
+ * We extract the key from the stored token to verify it matches.
  */
 export const upsertPublic = mutation({
   args: {
@@ -103,7 +106,22 @@ export const upsertPublic = mutation({
     if (!project) throw new Error(`No project with slug "${orgSlug}"`)
 
     // Verify the registration token
-    if (!project.registrationToken || project.registrationToken !== registrationToken) {
+    // The stored token is bcms_<base64 JSON> — extract the key to compare
+    if (!project.registrationToken) {
+      throw new Error('Invalid registration token')
+    }
+
+    let storedKey: string
+    try {
+      const base64 = project.registrationToken.slice('bcms_'.length)
+      const parsed = JSON.parse(atob(base64)) as { key: string }
+      storedKey = parsed.key
+    } catch {
+      // Legacy: stored token might be a plain UUID from before bcms_ encoding
+      storedKey = project.registrationToken
+    }
+
+    if (storedKey !== registrationToken) {
       throw new Error('Invalid registration token')
     }
 

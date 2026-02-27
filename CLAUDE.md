@@ -59,14 +59,21 @@ better-cms/
 │                   ├── content/[type]/
 │                   └── media/
 └── packages/
-    └── cms-client/
-        ├── src/
-        │   ├── index.ts             ← public API barrel
-        │   ├── client.ts            ← createCMSClient factory
-        │   ├── defineSection.ts     ← defineCMSSection + types
-        │   ├── z.ts                 ← z.string() / z.image() etc
-        │   ├── hooks/useSection.ts  ← realtime hook, fully typed
-        │   └── server/registerSections.ts
+    ├── cms-client/
+    │   ├── src/
+    │   │   ├── index.ts             ← public API barrel
+    │   │   ├── client.ts            ← createCMSClient factory
+    │   │   ├── token.ts             ← encodeToken / decodeToken (bcms_ format)
+    │   │   ├── provider.tsx         ← <CMSProvider> wraps ConvexProvider
+    │   │   ├── defineSection.ts     ← defineCMSSection + types
+    │   │   ├── z.ts                 ← z.string() / z.image() etc
+    │   │   ├── hooks/useSection.ts  ← realtime hook, fully typed
+    │   │   └── server/registerSections.ts
+    │   ├── tsup.config.ts
+    │   └── package.json
+    └── create-better-cms/
+        ├── src/index.ts             ← CLI entry point (npx create-better-cms)
+        ├── templates/nextjs/        ← Next.js 16 project template
         ├── tsup.config.ts
         └── package.json
 ```
@@ -75,12 +82,14 @@ better-cms/
 
 ## Key Architectural Decisions
 
-### registrationToken — server-to-server auth for registerSections
-`sectionRegistry.upsertPublic` is a Convex mutation with no Clerk auth. Instead it verifies
-a `registrationToken` stored on the project document. Client project stores the token as a
-server-only env var (`BETTER_CMS_TOKEN`, no `NEXT_PUBLIC_` prefix). The token is generated
-and displayed in the CMS project page. `registerSections` uses `ConvexHttpClient` +
-`makeFunctionReference` to call this mutation from a Next.js Server Component.
+### Single Token (bcms_) — all client config in one env var
+The CMS dashboard generates a `bcms_<base64>` token encoding `{ v, url, slug, key }`.
+Client projects set `NEXT_PUBLIC_BETTER_CMS_TOKEN=bcms_...` — this single env var replaces
+the old `NEXT_PUBLIC_CONVEX_URL` + `orgSlug` + `BETTER_CMS_TOKEN`. The `key` (UUID) is
+used by `registerSections` for auth; Convex URL and slug are decoded automatically.
+See `packages/cms-client/src/token.ts` for encode/decode. The token is `NEXT_PUBLIC_`
+because all its contents are safe for client-side use (the key only allows idempotent
+section registration, not content mutation).
 
 ### proxy.ts — NOT middleware.ts
 Next.js 16 deprecated `middleware.ts`. Use `proxy.ts` with a named export `proxy` (not
@@ -293,6 +302,9 @@ pnpm --filter @better-cms/cms dev
 # Build the client package
 pnpm --filter cms-client build
 
+# Build the CLI
+pnpm --filter create-better-cms build
+
 # Type-check everything
 pnpm type-check
 
@@ -309,8 +321,11 @@ cd apps/cms && npx convex deploy
 | `apps/cms/proxy.ts` | Next.js 16 auth guard — named export `proxy`, not `middleware` |
 | `apps/cms/convex/schema.ts` | Single source of truth for all Convex tables |
 | `apps/cms/convex/convex.config.ts` | R2 + Polar component registration |
+| `packages/cms-client/src/token.ts` | bcms_ token encode/decode |
+| `packages/cms-client/src/provider.tsx` | `<CMSProvider>` wrapping ConvexProvider |
 | `packages/cms-client/src/z.ts` | Custom z namespace — field type helpers |
 | `packages/cms-client/src/defineSection.ts` | Type inference engine for section fields |
+| `packages/create-better-cms/src/index.ts` | CLI entry point for `npx create-better-cms` |
 | `docs/PLAN.md` | Full phase-by-phase build plan |
 | `docs/ARCHITECTURE.md` | System design, data flow, multi-tenancy model |
 | `docs/DECISIONS.md` | Why we made the choices we made |

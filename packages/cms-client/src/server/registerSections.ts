@@ -1,6 +1,12 @@
 import { ConvexHttpClient } from 'convex/browser'
 import { makeFunctionReference } from 'convex/server'
-import type { CMSSection, CMSClientOptions } from '../types'
+import type { CMSSection } from '../types'
+
+interface RegisterOptions {
+  convexUrl: string
+  orgSlug: string
+  registrationToken: string
+}
 
 // Typed reference to sectionRegistry.upsertPublic
 // The path format is "fileName:exportName" in Convex
@@ -24,12 +30,12 @@ const upsertPublicFn = makeFunctionReference<
  */
 export async function registerSections(
   sections: CMSSection[],
-  options: Pick<CMSClientOptions, 'convexUrl' | 'orgSlug' | 'registrationToken'>
+  options: RegisterOptions
 ): Promise<void> {
   if (!options.registrationToken) {
     throw new Error(
       '[cms-client] registerSections requires a registrationToken. ' +
-        'Generate one in the CMS project page and add it as BETTER_CMS_TOKEN in .env.local.'
+        'Set NEXT_PUBLIC_BETTER_CMS_TOKEN in your .env.local with the token from the CMS dashboard.'
     )
   }
 

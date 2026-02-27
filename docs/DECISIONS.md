@@ -1,7 +1,7 @@
 # DECISIONS.md — Better CMS
 
 > Why we made the choices we made. Read this before proposing architectural changes.
-> Last updated: 2026-02-27 (Phase 0 + Phase 4 additions)
+> Last updated: 2026-02-27 (Phase 0 + Phase 4 + single-token encoding)
 
 ---
 
@@ -169,6 +169,27 @@ frontend work — no schema migrations, no component re-installation.
 - Webhook handler at `app/api/polar/events/route.ts`
 - Customer portal link for self-service billing
 - `projects` table: add `planTier: "free" | "pro" | "enterprise"` field
+
+---
+
+## Single Token (bcms_) for All Client Config
+
+**Decision**: Encode Convex URL, org slug, and registration key into a single `bcms_<base64>`
+token. Clients set one env var (`NEXT_PUBLIC_BETTER_CMS_TOKEN`) instead of three.
+
+**Why**:
+- Reduces setup from 3 env vars to 1
+- The Convex URL was already public (visible in network tab)
+- The org slug was already public (used in unauthenticated queries)
+- The registration key only allows idempotent section registration — not content mutation
+- Enables `npx create-better-cms` to scaffold projects with zero-config
+
+**Token format**: `bcms_` prefix + Base64-encoded JSON `{ v: 1, url, slug, key }`.
+The `v` field enables future format changes without breaking existing tokens.
+
+**Security**: The token is `NEXT_PUBLIC_` — intentionally client-visible. The key grants only
+`registerSections` access (idempotent upserts). All content mutations require Clerk auth.
+Project owners can regenerate the token at any time to revoke the old key.
 
 ---
 

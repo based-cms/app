@@ -38,7 +38,10 @@ export default function ProjectPage({
   async function handleGenerateToken() {
     setGenerating(true)
     try {
-      await generateToken({ projectId: projectId as Id<'projects'> })
+      await generateToken({
+        projectId: projectId as Id<'projects'>,
+        convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
+      })
       setTokenVisible(true)
       toast.success('New token generated')
     } catch {
@@ -185,23 +188,29 @@ export default function ProjectPage({
         {/* Code snippet */}
         <div>
           <p className="mb-1.5 text-xs text-muted-foreground">
+            Add to your client project&apos;s <code className="text-xs">.env.local</code>
+          </p>
+          <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
+            {`NEXT_PUBLIC_BETTER_CMS_TOKEN=<token from above>`}
+          </pre>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-xs text-muted-foreground">
             Add to your client project&apos;s <code className="text-xs">lib/cms.ts</code>
           </p>
           <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
             {`import { createCMSClient } from 'cms-client'
 
 export const cms = createCMSClient({
-  convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
-  orgSlug: '${project.slug}',
-  registrationToken: process.env.BETTER_CMS_TOKEN,
+  token: process.env.NEXT_PUBLIC_BETTER_CMS_TOKEN!,
 })`}
           </pre>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Set <code className="text-xs">BETTER_CMS_TOKEN</code> in your client project&apos;s{' '}
-          <code className="text-xs">.env.local</code> — keep it server-side only (no{' '}
-          <code className="text-xs">NEXT_PUBLIC_</code> prefix).
+          Or scaffold a new project instantly:{' '}
+          <code className="text-xs">npx create-better-cms</code>
         </p>
       </div>
     </div>

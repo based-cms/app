@@ -96,18 +96,25 @@ export const update = mutation({
 
 /**
  * Generate (or regenerate) the registration token for a project.
- * The token is displayed in the CMS project page and used by cms-client
- * to call registerSections() from the client Next.js project's server.
+ * The token is a `bcms_<base64>` string containing the Convex URL, org slug,
+ * and a secret key. Displayed in the CMS project page — users set it as
+ * NEXT_PUBLIC_BETTER_CMS_TOKEN in their client project.
  */
 export const generateRegistrationToken = mutation({
-  args: { projectId: v.id('projects') },
-  handler: async (ctx, { projectId }) => {
+  args: {
+    projectId: v.id('projects'),
+    convexUrl: v.string(),
+  },
+  handler: async (ctx, { projectId, convexUrl }) => {
     const orgId = await requireOrgId(ctx)
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) throw new Error('Project not found')
 
-    // crypto.randomUUID() is available in Convex's V8 runtime
-    const token = crypto.randomUUID()
+    // Encode everything into a single token: bcms_<base64 JSON>
+    const key = crypto.randomUUID()
+    const payload = JSON.stringify({ v: 1, url: convexUrl, slug: project.slug, key })
+    const token = `bcms_${btoa(payload)}`
+
     await ctx.db.patch(projectId, { registrationToken: token })
     return token
   },

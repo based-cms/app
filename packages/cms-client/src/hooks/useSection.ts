@@ -1,6 +1,11 @@
 import { useQuery } from 'convex/react'
 import { makeFunctionReference } from 'convex/server'
-import type { CMSSection, CMSClientOptions, InferSectionType } from '../types'
+import type { CMSSection, InferSectionType } from '../types'
+
+interface UseSectionOptions {
+  orgSlug: string
+  env?: 'production' | 'preview'
+}
 
 // Typed reference to sectionContent.getPublic
 // Returns unknown[] — we cast to the inferred item type in the hook
@@ -25,7 +30,7 @@ const getPublicFn = makeFunctionReference<
  */
 export function useSection<T extends CMSSection>(
   section: T,
-  options: Pick<CMSClientOptions, 'orgSlug' | 'env'>
+  options: UseSectionOptions
 ): InferSectionType<T>[] | undefined {
   const result = useQuery(getPublicFn, {
     orgSlug: options.orgSlug,

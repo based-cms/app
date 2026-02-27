@@ -1,0 +1,28 @@
+{
+  "name": "create-better-cms",
+  "version": "0.1.0",
+  "description": "Scaffold a new Better CMS client project",
+  "bin": {
+    "create-better-cms": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@better-cms/tsconfig": "workspace:*",
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}

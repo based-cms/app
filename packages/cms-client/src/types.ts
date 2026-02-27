@@ -39,14 +39,10 @@ export type InferSectionItem<TFields extends FieldMap> =
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export interface CMSClientOptions {
-  /** The Convex deployment URL — use NEXT_PUBLIC_CONVEX_URL */
-  convexUrl: string
-  /** Your project's slug as set in the CMS dashboard */
-  orgSlug: string
+  /** Combined token from the CMS dashboard — contains Convex URL, org slug, and secret */
+  token: string
   /** 'production' (default) or 'preview' */
   env?: 'production' | 'preview'
-  /** Registration token from the CMS project page — server-side only */
-  registrationToken?: string
 }
 
 /**

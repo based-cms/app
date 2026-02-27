@@ -119,6 +119,28 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/create-better-cms:
+    dependencies:
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
+    devDependencies:
+      '@better-cms/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/prompts':
+        specifier: ^2.4.9
+        version: 2.4.9
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/tsconfig: {}
 
 packages:
@@ -2561,6 +2583,9 @@ packages:
 
   '@types/node@20.19.35':
     resolution: {integrity: sha512-Uarfe6J91b9HAUXxjvSOdiO2UPOKLm07Q1oh0JHxoZ1y8HoqxDAu3gVrsrOHeiio0kSsoVBt4wFrKOm0dKxVPQ==}
+
+  '@types/prompts@2.4.9':
+    resolution: {integrity: sha512-qTxFi6Buiu8+50/+3DGIWLHM6QuWsEKugJnnP6iv2Mc4ncxE4A/OJkjuVOA+5X0X1S/nq5VJRa8Lu+nwcvbrKA==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -8459,6 +8484,11 @@ snapshots:
   '@types/node@20.19.35':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/prompts@2.4.9':
+    dependencies:
+      '@types/node': 20.19.35
+      kleur: 3.0.3
 
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
