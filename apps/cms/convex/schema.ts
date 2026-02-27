@@ -48,7 +48,20 @@ export default defineSchema({
     mimeType: v.string(),
     size: v.number(),      // bytes
     uploadedAt: v.number(), // Unix ms
+    folder: v.optional(v.string()), // full folder path, "" = root
   })
     .index('by_project', ['projectId'])
-    .index('by_r2_key', ['r2Key']),
+    .index('by_r2_key', ['r2Key'])
+    .index('by_project_folder', ['projectId', 'folder']),
+
+  // Virtual folder hierarchy — leaf name + full path + parent path
+  folders: defineTable({
+    orgId: v.string(),
+    projectId: v.id('projects'),
+    name: v.string(),        // leaf name, e.g. "headers"
+    path: v.string(),        // full path, e.g. "images/headers"
+    parentPath: v.string(),  // parent path, "" for root-level folders
+  })
+    .index('by_project', ['projectId'])
+    .index('by_project_parent', ['projectId', 'parentPath']),
 })

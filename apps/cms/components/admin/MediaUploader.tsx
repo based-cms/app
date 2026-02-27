@@ -10,10 +10,11 @@ import { toast } from 'sonner'
 
 interface Props {
   projectId: Id<'projects'>
+  folder?: string
   onUploaded?: (url: string) => void
 }
 
-export function MediaUploader({ projectId, onUploaded }: Props) {
+export function MediaUploader({ projectId, folder, onUploaded }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const generateUploadUrl = useAction(api.media.generateUploadUrl)
@@ -22,8 +23,8 @@ export function MediaUploader({ projectId, onUploaded }: Props) {
   async function handleFile(file: File) {
     setUploading(true)
     try {
-      // 1. Get presigned URL from Convex
-      const { uploadUrl, r2Key } = await generateUploadUrl({
+      // 1. Get presigned upload URL + public CDN URL from Convex
+      const { uploadUrl, r2Key, publicUrl } = await generateUploadUrl({
         projectId,
         filename: file.name,
         mimeType: file.type,
@@ -37,9 +38,6 @@ export function MediaUploader({ projectId, onUploaded }: Props) {
       })
       if (!res.ok) throw new Error('Upload to R2 failed')
 
-      // 3. Derive public URL (R2 key → public URL via the upload URL base)
-      const publicUrl = uploadUrl.split('?')[0] ?? uploadUrl
-
       // 4. Index in Convex media table
       await createMedia({
         projectId,
@@ -48,6 +46,7 @@ export function MediaUploader({ projectId, onUploaded }: Props) {
         filename: file.name,
         mimeType: file.type,
         size: file.size,
+        folder: folder ?? '',
       })
 
       toast.success('File uploaded')

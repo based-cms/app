@@ -8,17 +8,22 @@ const r2 = new R2(components.r2)
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-/** List all media for a project, newest first */
+/** List media for a project in a specific folder (empty string = root) */
 export const list = query({
-  args: { projectId: v.id('projects') },
-  handler: async (ctx, { projectId }) => {
+  args: { projectId: v.id('projects'), folder: v.optional(v.string()) },
+  handler: async (ctx, { projectId, folder }) => {
     const orgId = await requireOrgId(ctx)
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) return []
 
+    // Normalise: treat undefined as root ("")
+    const folderPath = folder ?? ''
+
     return ctx.db
       .query('media')
-      .withIndex('by_project', (q) => q.eq('projectId', projectId))
+      .withIndex('by_project_folder', (q) =>
+        q.eq('projectId', projectId).eq('folder', folderPath)
+      )
       .order('desc')
       .collect()
   },
@@ -35,8 +40,9 @@ export const create = mutation({
     filename: v.string(),
     mimeType: v.string(),
     size: v.number(),
+    folder: v.optional(v.string()),
   },
-  handler: async (ctx, { projectId, r2Key, url, filename, mimeType, size }) => {
+  handler: async (ctx, { projectId, r2Key, url, filename, mimeType, size, folder }) => {
     const orgId = await requireOrgId(ctx)
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) {
@@ -52,11 +58,34 @@ export const create = mutation({
       mimeType,
       size,
       uploadedAt: Date.now(),
+      folder: folder ?? '',
     })
   },
 })
 
-/** Delete a media record and its R2 object */
+/** Rename a media file (updates filename display only — does not rename in R2) */
+export const rename = mutation({
+  args: { mediaId: v.id('media'), filename: v.string() },
+  handler: async (ctx, { mediaId, filename }) => {
+    const orgId = await requireOrgId(ctx)
+    const media = await ctx.db.get(mediaId)
+    if (!media || media.orgId !== orgId) throw new Error('Media not found')
+    await ctx.db.patch(mediaId, { filename })
+  },
+})
+
+/** Move a media file to a different folder (empty string = root) */
+export const moveToFolder = mutation({
+  args: { mediaId: v.id('media'), folder: v.string() },
+  handler: async (ctx, { mediaId, folder }) => {
+    const orgId = await requireOrgId(ctx)
+    const media = await ctx.db.get(mediaId)
+    if (!media || media.orgId !== orgId) throw new Error('Media not found')
+    await ctx.db.patch(mediaId, { folder })
+  },
+})
+
+/** Delete a media record — R2 cleanup is a separate action */
 export const remove = mutation({
   args: { mediaId: v.id('media') },
   handler: async (ctx, { mediaId }) => {
@@ -66,7 +95,6 @@ export const remove = mutation({
       throw new Error('Media not found')
     }
     await ctx.db.delete(mediaId)
-    // R2 object deletion is handled by deleteFromR2 action below
     return media.r2Key
   },
 })
@@ -83,8 +111,15 @@ export const generateUploadUrl = action({
   handler: async (_ctx, { projectId, filename }) => {
     // Namespace R2 keys by projectId to keep orgs isolated within the bucket
     const r2Key = `${projectId}/${Date.now()}-${filename}`
-    const { url } = await r2.generateUploadUrl(r2Key)
-    return { uploadUrl: url, r2Key }
+    const { url: uploadUrl } = await r2.generateUploadUrl(r2Key)
+
+    // Public URL is served from the r2.dev CDN (or custom domain), not from the
+    // S3-compatible API endpoint that the presigned upload URL points at.
+    const base = process.env.R2_PUBLIC_BASE_URL?.replace(/\/$/, '')
+    if (!base) throw new Error('R2_PUBLIC_BASE_URL env var is not set')
+    const publicUrl = `${base}/${r2Key}`
+
+    return { uploadUrl, r2Key, publicUrl }
   },
 })
 

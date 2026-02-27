@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, Image } from 'lucide-react'
+import { ArrowLeft, FileText, FolderOpen } from 'lucide-react'
 
 export default function ProjectPage({
   params,
@@ -84,15 +84,15 @@ export default function ProjectPage({
           </Card>
         </Link>
 
-        {/* Media card */}
-        <Link href={`/admin/${projectId}/media`}>
+        {/* Files card */}
+        <Link href={`/admin/${projectId}/files`}>
           <Card className="h-full transition-colors hover:bg-muted/50">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Image className="h-4 w-4 text-muted-foreground" />
-                <CardTitle className="text-base">Media</CardTitle>
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base">Files</CardTitle>
               </div>
-              <CardDescription>Upload and manage images and files</CardDescription>
+              <CardDescription>Upload and manage files in nested folders</CardDescription>
             </CardHeader>
           </Card>
         </Link>
