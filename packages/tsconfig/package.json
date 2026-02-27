@@ -1,5 +1,5 @@
 {
-  "name": "@better-cms/tsconfig",
+  "name": "@based-cms/tsconfig",
   "version": "0.0.1",
   "private": true,
   "files": ["*.json"]

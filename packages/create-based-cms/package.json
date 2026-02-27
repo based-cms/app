@@ -1,9 +1,9 @@
 {
-  "name": "create-better-cms",
+  "name": "create-based-cms",
   "version": "0.1.0",
-  "description": "Scaffold a new Better CMS client project",
+  "description": "Scaffold a new Based CMS client project",
   "bin": {
-    "create-better-cms": "./dist/index.js"
+    "create-based-cms": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -20,7 +20,7 @@
     "prompts": "^2.4.2"
   },
   "devDependencies": {
-    "@better-cms/tsconfig": "workspace:*",
+    "@based-cms/tsconfig": "workspace:*",
     "@types/prompts": "^2.4.9",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"

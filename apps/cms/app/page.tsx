@@ -120,7 +120,7 @@ const FEATURES = [
   {
     num: '03',
     title: 'TWO ENV VARS',
-    desc: 'BETTER-CMS-SLUG and BETTER-CMS-KEY. That is the entire configuration for a client project. No API routes, no config files.',
+    desc: 'BASED-CMS-SLUG and BASED-CMS-KEY. That is the entire configuration for a client project. No API routes, no config files.',
   },
   {
     num: '04',
@@ -187,7 +187,7 @@ export default function Home() {
             <span className="flex h-8 w-8 items-center justify-center bg-[#e8aa3a] text-[13px] font-bold text-[#050505]">
               B
             </span>
-            Better CMS
+            Based CMS
           </Link>
           <div className="flex items-center gap-6">
             <Link
@@ -230,7 +230,7 @@ export default function Home() {
 
           <div className="animate-fade-in-up animate-duration-700 animate-delay-300 mt-8 flex items-center gap-2 font-mono text-sm text-[#555]">
             <span className="text-[#e8aa3a]">$</span>
-            <span>npx create-better-cms</span>
+            <span>npx create-based-cms</span>
             <span className="animate-blink text-[#e8aa3a]">_</span>
           </div>
         </div>
@@ -373,7 +373,7 @@ export default function Home() {
                 Content. Nothing else.
               </h2>
               <p className="text-[15px] leading-[1.8] text-[#555]">
-                Better CMS doesn&apos;t manage your pages, your routes, or your
+                Based CMS doesn&apos;t manage your pages, your routes, or your
                 SEO. It doesn&apos;t have a page builder, a theme engine, or a
                 plugin marketplace. It does one thing: structured content,
                 delivered in realtime, with types you didn&apos;t have to write.
@@ -400,7 +400,7 @@ export default function Home() {
           <AnimateIn delay="animate-delay-200">
             <div className="mx-auto mt-10 flex w-fit items-center gap-2 border border-[#1a1a1a] bg-[#0a0a0a] px-6 py-4 font-mono text-sm text-[#666]">
               <span className="text-[#e8aa3a]">$</span>
-              npx create-better-cms
+              npx create-based-cms
               <span className="animate-blink ml-0.5 text-[#e8aa3a]">_</span>
             </div>
           </AnimateIn>
@@ -419,7 +419,7 @@ export default function Home() {
 
       {/* ── Footer ──────────────────────────────────────────── */}
       <footer className="border-t border-[#1a1a1a] py-8 text-center text-xs text-[#2a2a2a]">
-        Better CMS &mdash; Next.js, Convex &amp; Clerk
+        Based CMS &mdash; Next.js, Convex &amp; Clerk
       </footer>
     </div>
   )

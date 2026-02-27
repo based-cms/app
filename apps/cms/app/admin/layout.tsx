@@ -24,7 +24,7 @@ export default async function AdminLayout({
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-[13px] font-bold text-background">
               B
             </span>
-            <span className="font-semibold tracking-tight">Better CMS</span>
+            <span className="font-semibold tracking-tight">Based CMS</span>
           </Link>
           <div className="flex items-center gap-4">
             <EnvToggle />

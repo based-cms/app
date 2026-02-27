@@ -1,6 +1,6 @@
 # PACKAGE_USAGE.md — Using `cms-client` in a Client Next.js Project
 
-> Complete reference for integrating Better CMS into a client Next.js 16 project.
+> Complete reference for integrating Based CMS into a client Next.js 16 project.
 > Last updated: 2026-02-27 (Phase 5 complete — actual implementation)
 
 ---
@@ -10,7 +10,7 @@
 The fastest way to get started:
 
 ```bash
-npx create-better-cms my-project
+npx create-based-cms my-project
 cd my-project
 pnpm install
 pnpm dev
@@ -37,8 +37,8 @@ Get your credentials from the CMS dashboard → your project → Package Setup.
 Add to your `.env.local`:
 
 ```bash
-BETTER-CMS-SLUG=my-project          # your project's public slug
-BETTER-CMS-KEY=bcms_test-...        # test key (use bcms_live-... for production)
+BASED-CMS-SLUG=my-project          # your project's public slug
+BASED-CMS-KEY=bcms_test-...        # test key (use bcms_live-... for production)
 ```
 
 **Key format**: `bcms_<test|live>-<base64(deploymentName.SECRET)>`
@@ -57,7 +57,7 @@ BETTER-CMS-KEY=bcms_test-...        # test key (use bcms_live-... for production
 import { createCMSClient } from 'cms-client'
 
 export const cms = createCMSClient({
-  key: process.env['BETTER-CMS-KEY']!,
+  key: process.env['BASED-CMS-KEY']!,
 })
 ```
 
@@ -125,8 +125,8 @@ import { cms } from '@/lib/cms'
 import { teamSection, heroSection } from '@/lib/sections'
 import { Providers } from '@/components/providers'
 
-const slug = process.env['BETTER-CMS-SLUG']!
-const parsed = parseKey(process.env['BETTER-CMS-KEY']!)
+const slug = process.env['BASED-CMS-SLUG']!
+const parsed = parseKey(process.env['BASED-CMS-KEY']!)
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Register sections on every server boot — idempotent
@@ -194,7 +194,7 @@ Creates the server-side CMS client. Call once per project.
 import { createCMSClient } from 'cms-client'
 
 const cms = createCMSClient({
-  key: string,   // BETTER-CMS-KEY
+  key: string,   // BASED-CMS-KEY
 })
 ```
 
@@ -209,7 +209,7 @@ Parses a `bcms_` key into its parts. Useful for extracting the Convex URL and en
 ```ts
 import { parseKey } from 'cms-client'
 
-const parsed = parseKey(process.env['BETTER-CMS-KEY']!)
+const parsed = parseKey(process.env['BASED-CMS-KEY']!)
 // parsed.env          → 'test' | 'live'
 // parsed.deploymentName → 'elated-tapir-331'
 // parsed.secret       → '...' (registration token)
@@ -276,7 +276,7 @@ React context provider that wraps your app. Required for `useSection` to work.
 import { CMSProvider } from 'cms-client/react'
 
 <CMSProvider
-  slug={string}                       // BETTER-CMS-SLUG
+  slug={string}                       // BASED-CMS-SLUG
   convexUrl={string}                  // from parseKey(key).convexUrl
   env={'production' | 'preview'}      // 'production' for live key, 'preview' for test key
 >
@@ -339,7 +339,7 @@ type TeamMember = InferSectionType<typeof teamSection>
 
 ## Key Format
 
-The `BETTER-CMS-KEY` uses the format: `bcms_<test|live>-<base64(deploymentName.SECRET)>`
+The `BASED-CMS-KEY` uses the format: `bcms_<test|live>-<base64(deploymentName.SECRET)>`
 
 - `test` — maps to **preview** environment in the CMS
 - `live` — maps to **production** environment in the CMS
@@ -348,7 +348,7 @@ Both keys encode the same Convex deployment. They differ only in the `env` field
 by `parseKey()`. Use this to choose which environment's content to display:
 
 ```ts
-const parsed = parseKey(process.env['BETTER-CMS-KEY']!)
+const parsed = parseKey(process.env['BASED-CMS-KEY']!)
 const env = parsed.env === 'live' ? 'production' : 'preview'
 ```
 
@@ -361,8 +361,8 @@ invalidates all previous keys for that project immediately.
 
 Content in the CMS has two environments: `production` and `preview`.
 
-- Use `BETTER-CMS-KEY=bcms_live-...` in production deployments
-- Use `BETTER-CMS-KEY=bcms_test-...` in preview/staging deployments
+- Use `BASED-CMS-KEY=bcms_live-...` in production deployments
+- Use `BASED-CMS-KEY=bcms_test-...` in preview/staging deployments
 
 The CMS dashboard shows an **Environment Toggle** allowing editors to maintain separate
 content for each environment.
@@ -373,7 +373,7 @@ content for each environment.
 
 **Q: Do I need to create a separate Convex project?**
 No. Your Next.js project connects to the CMS's Convex deployment directly. The Convex URL
-is derived from your `BETTER-CMS-KEY` by `parseKey()`.
+is derived from your `BASED-CMS-KEY` by `parseKey()`.
 
 **Q: What happens if I add a new field to a section?**
 Call `registerSections` again (it happens automatically on next boot). The CMS will show the
@@ -389,6 +389,6 @@ page-specific content, create distinct sections: `homeHeroSection`, `aboutHeroSe
 a `getSection` Server Component helper is planned but not yet implemented — see `TODO.md`.
 
 **Q: Why two env vars instead of one token?**
-The `BETTER-CMS-SLUG` is a public human-readable identifier used in Convex queries.
-The `BETTER-CMS-KEY` encodes the Convex deployment and registration secret.
+The `BASED-CMS-SLUG` is a public human-readable identifier used in Convex queries.
+The `BASED-CMS-KEY` encodes the Convex deployment and registration secret.
 Keeping them separate makes the slug easier to read and copy independently of the key.

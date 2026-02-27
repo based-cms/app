@@ -10,14 +10,14 @@ import type { CMSClient, CMSClientOptions, CMSSection } from './types';
  * import { createCMSClient } from 'cms-client'
  *
  * export const cms = createCMSClient({
- *   key: process.env['BETTER-CMS-KEY']!,
+ *   key: process.env['BASED-CMS-KEY']!,
  * })
  * ```
  */
 export function createCMSClient(options: CMSClientOptions): CMSClient {
 	if (!options.key) {
 		throw new Error(
-			"[cms-client] No key provided. Pass key to createCMSClient({ key: process.env['BETTER-CMS-KEY']! }).",
+			"[cms-client] No key provided. Pass key to createCMSClient({ key: process.env['BASED-CMS-KEY']! }).",
 		);
 	}
 

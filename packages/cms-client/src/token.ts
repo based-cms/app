@@ -8,7 +8,7 @@ export interface ParsedKey {
 }
 
 /**
- * Parse a BETTER-CMS-KEY into its parts.
+ * Parse a BASED-CMS-KEY into its parts.
  *
  * Format: `bcms_<test|live>-<base64(deployment-name.SECRET24)>`
  *
@@ -21,7 +21,7 @@ export interface ParsedKey {
  */
 export function parseKey(key: string): ParsedKey {
 	if (!key) {
-		throw new Error('[cms-client] BETTER-CMS-KEY is empty.');
+		throw new Error('[cms-client] BASED-CMS-KEY is empty.');
 	}
 
 	const body = key.startsWith('bcms_') ? key.slice(5) : key;
@@ -30,14 +30,14 @@ export function parseKey(key: string): ParsedKey {
 	const sep = body.indexOf('-');
 	if (sep === -1) {
 		throw new Error(
-			'[cms-client] Invalid BETTER-CMS-KEY format. Expected: bcms_<test|live>-<base64>',
+			'[cms-client] Invalid BASED-CMS-KEY format. Expected: bcms_<test|live>-<base64>',
 		);
 	}
 
 	const envStr = body.slice(0, sep);
 	if (envStr !== 'test' && envStr !== 'live') {
 		throw new Error(
-			`[cms-client] Invalid BETTER-CMS-KEY env "${envStr}". Expected "test" or "live".`,
+			`[cms-client] Invalid BASED-CMS-KEY env "${envStr}". Expected "test" or "live".`,
 		);
 	}
 
@@ -48,7 +48,7 @@ export function parseKey(key: string): ParsedKey {
 		decoded = atob(b64);
 	} catch {
 		throw new Error(
-			'[cms-client] Invalid BETTER-CMS-KEY — could not base64-decode the payload.',
+			'[cms-client] Invalid BASED-CMS-KEY — could not base64-decode the payload.',
 		);
 	}
 
@@ -56,14 +56,14 @@ export function parseKey(key: string): ParsedKey {
 	// but the secret (24 uppercase+digits) never does
 	const dotIdx = decoded.lastIndexOf('.');
 	if (dotIdx === -1) {
-		throw new Error('[cms-client] Invalid BETTER-CMS-KEY');
+		throw new Error('[cms-client] Invalid BASED-CMS-KEY');
 	}
 
 	const deploymentName = decoded.slice(0, dotIdx);
 	const secret = decoded.slice(dotIdx + 1);
 
 	if (!deploymentName || !secret) {
-		throw new Error('[cms-client] Invalid BETTER-CMS-KEY');
+		throw new Error('[cms-client] Invalid BASED-CMS-KEY');
 	}
 
 	return {
@@ -75,7 +75,7 @@ export function parseKey(key: string): ParsedKey {
 }
 
 /**
- * Build a BETTER-CMS-KEY from its parts.
+ * Build a BASED-CMS-KEY from its parts.
  *
  * Used by the CMS admin dashboard to display the key to users.
  */

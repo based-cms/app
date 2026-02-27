@@ -1,4 +1,4 @@
-# CLAUDE.md — Better CMS
+# CLAUDE.md — Based CMS
 
 > **Load this file at the start of every session.** It contains everything needed to resume
 > work without re-reading the full codebase.
@@ -32,7 +32,7 @@ sections and receive realtime, fully-typed data — no REST API, no manual schem
 ## Monorepo Structure
 
 ```
-better-cms/
+based-cms/
 ├── CLAUDE.md                        ← you are here
 ├── docs/
 │   ├── PLAN.md                      ← full phase-by-phase build plan
@@ -71,8 +71,8 @@ better-cms/
     │   │   └── server/registerSections.ts
     │   ├── tsup.config.ts
     │   └── package.json
-    └── create-better-cms/
-        ├── src/index.ts             ← CLI entry point (npx create-better-cms)
+    └── create-based-cms/
+        ├── src/index.ts             ← CLI entry point (npx create-based-cms)
         ├── templates/nextjs/        ← Next.js 16 project template
         ├── tsup.config.ts
         └── package.json
@@ -82,10 +82,10 @@ better-cms/
 
 ## Key Architectural Decisions
 
-### Two Env Vars: BETTER-CMS-SLUG + BETTER-CMS-KEY
+### Two Env Vars: BASED-CMS-SLUG + BASED-CMS-KEY
 Client projects need exactly two env vars:
-- `BETTER-CMS-SLUG` — public org slug (e.g. `my-project`), passed to `CMSProvider` server-side
-- `BETTER-CMS-KEY` — `bcms_<test|live>-<base64(deploymentName.SECRET)>` format, parsed by
+- `BASED-CMS-SLUG` — public org slug (e.g. `my-project`), passed to `CMSProvider` server-side
+- `BASED-CMS-KEY` — `bcms_<test|live>-<base64(deploymentName.SECRET)>` format, parsed by
   `parseKey()` from `cms-client` to extract the Convex URL and registration secret
 
 `test` key → preview env content; `live` key → production env content.
@@ -294,13 +294,13 @@ pnpm install
 pnpm dev
 
 # Run only the CMS app
-pnpm --filter @better-cms/cms dev
+pnpm --filter @based-cms/cms dev
 
 # Build the client package
 pnpm --filter cms-client build
 
 # Build the CLI
-pnpm --filter create-better-cms build
+pnpm --filter create-based-cms build
 
 # Type-check everything
 pnpm type-check
@@ -322,7 +322,7 @@ cd apps/cms && npx convex deploy
 | `packages/cms-client/src/provider.tsx` | `<CMSProvider>` wrapping ConvexProvider |
 | `packages/cms-client/src/z.ts` | Custom z namespace — field type helpers |
 | `packages/cms-client/src/defineSection.ts` | Type inference engine for section fields |
-| `packages/create-better-cms/src/index.ts` | CLI entry point for `npx create-better-cms` |
+| `packages/create-based-cms/src/index.ts` | CLI entry point for `npx create-based-cms` |
 | `docs/PLAN.md` | Full phase-by-phase build plan |
 | `docs/ARCHITECTURE.md` | System design, data flow, multi-tenancy model |
 | `docs/DECISIONS.md` | Why we made the choices we made |

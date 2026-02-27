@@ -27,7 +27,7 @@ function isValidUrl(value: string): boolean {
 
 async function main() {
   console.log()
-  console.log(`  ${pc.bold(pc.cyan('create-better-cms'))} — scaffold a Better CMS client project`)
+  console.log(`  ${pc.bold(pc.cyan('create-based-cms'))} — scaffold a Based CMS client project`)
   console.log()
 
   // Parse CLI args
@@ -91,7 +91,7 @@ async function main() {
   const { setupChoice } = await prompts({
     type: 'select',
     name: 'setupChoice',
-    message: 'Connect to Better CMS:',
+    message: 'Connect to Based CMS:',
     choices: [
       {
         title: 'Enter credentials',
@@ -121,13 +121,13 @@ async function main() {
       {
         type: 'text',
         name: 'slug',
-        message: 'Project slug (BETTER-CMS-SLUG):',
+        message: 'Project slug (BASED-CMS-SLUG):',
         validate: (v: string) => (v.trim().length > 0 ? true : 'Slug cannot be empty'),
       },
       {
         type: 'text',
         name: 'key',
-        message: 'Key (BETTER-CMS-KEY):',
+        message: 'Key (BASED-CMS-KEY):',
         validate: (v: string) => (v.trim().length > 0 ? true : 'Key cannot be empty'),
       },
     ])
@@ -225,8 +225,8 @@ async function main() {
   // Write .env.local if any credentials were provided
   if (slug || key) {
     const lines: string[] = []
-    lines.push(`BETTER-CMS-SLUG=${slug ?? ''}`)
-    lines.push(`BETTER-CMS-KEY=${key ?? ''}`)
+    lines.push(`BASED-CMS-SLUG=${slug ?? ''}`)
+    lines.push(`BASED-CMS-KEY=${key ?? ''}`)
     fs.writeFileSync(path.join(targetDir, '.env.local'), lines.join('\n') + '\n')
     console.log(`  ${pc.green('Wrote')} .env.local`)
   }
@@ -240,8 +240,8 @@ async function main() {
   console.log(`  ${pc.cyan('pnpm install')}        ${pc.dim('# or npm install / yarn')}`)
   if (!slug || !key) {
     console.log(`  ${pc.dim('# Add to .env.local:')}`)
-    if (!slug) console.log(`  ${pc.cyan('BETTER-CMS-SLUG=')}${pc.dim('my-project')}`)
-    if (!key) console.log(`  ${pc.cyan('BETTER-CMS-KEY=')}${pc.dim('bcms_test-...')}`)
+    if (!slug) console.log(`  ${pc.cyan('BASED-CMS-SLUG=')}${pc.dim('my-project')}`)
+    if (!key) console.log(`  ${pc.cyan('BASED-CMS-KEY=')}${pc.dim('bcms_test-...')}`)
   }
   console.log(`  ${pc.cyan('pnpm dev')}`)
   console.log()

@@ -6,5 +6,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@better-cms/cms", "@better-cms/tsconfig"]
+  "ignore": ["@based-cms/cms", "@based-cms/tsconfig"]
 }

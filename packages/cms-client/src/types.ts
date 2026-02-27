@@ -39,7 +39,7 @@ export type InferSectionItem<TFields extends FieldMap> =
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export interface CMSClientOptions {
-  /** BETTER-CMS-KEY value (bcms_test-... or bcms_live-...) */
+  /** BASED-CMS-KEY value (bcms_test-... or bcms_live-...) */
   key: string
 }
 

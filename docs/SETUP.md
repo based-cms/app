@@ -1,4 +1,4 @@
-# SETUP.md — Better CMS
+# SETUP.md — Based CMS
 
 > Step-by-step setup guide for local development and production deployment.
 > Last updated: 2026-02-27 (Phase 5 complete)
@@ -108,7 +108,7 @@ As the admin developer:
 ## Cloudflare R2 Setup
 
 1. Go to Cloudflare dashboard → R2 Object Storage
-2. Create a new bucket (e.g., `better-cms-media`)
+2. Create a new bucket (e.g., `based-cms-media`)
 3. Enable **public access** on the bucket (or set up a custom domain)
 4. Create an API token with R2 read/write permissions
 5. Note two distinct URLs — **do not mix them up**:
@@ -129,7 +129,7 @@ As the admin developer:
 ```bash
 # Clone the repo
 git clone <repo-url>
-cd better-cms
+cd based-cms
 
 # Install all dependencies
 pnpm install
@@ -140,7 +140,7 @@ pnpm install
 cd apps/cms && npx convex dev
 
 # Start Next.js dev server (separate terminal)
-pnpm --filter @better-cms/cms dev
+pnpm --filter @based-cms/cms dev
 
 # Or start everything together
 pnpm dev

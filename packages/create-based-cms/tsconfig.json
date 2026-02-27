@@ -1,5 +1,5 @@
 {
-  "extends": "@better-cms/tsconfig/base.json",
+  "extends": "@based-cms/tsconfig/base.json",
   "compilerOptions": {
     "module": "es2022",
     "lib": ["ES2021"],

@@ -1,7 +1,7 @@
 {
   "name": "cms-client",
   "version": "0.2.0",
-  "description": "Client SDK for connecting Next.js projects to Better CMS",
+  "description": "Client SDK for connecting Next.js projects to Based CMS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -37,7 +37,7 @@
     "react": ">=19.0.0"
   },
   "devDependencies": {
-    "@better-cms/tsconfig": "workspace:*",
+    "@based-cms/tsconfig": "workspace:*",
     "@types/react": "^19",
     "convex": "^1.21.0",
     "react": "^19.0.0",

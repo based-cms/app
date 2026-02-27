@@ -32,7 +32,7 @@ export async function registerSections(
   if (!options.registrationToken) {
     throw new Error(
       '[cms-client] registerSections requires a registration token. ' +
-        'Set BETTER-CMS-KEY in your .env.local.'
+        'Set BASED-CMS-KEY in your .env.local.'
     )
   }
 

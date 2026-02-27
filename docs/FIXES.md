@@ -1,4 +1,4 @@
-# FIXES.md — Better CMS
+# FIXES.md — Based CMS
 
 > Non-obvious fixes made during the build, with explanation.
 > Add entries here whenever a fix is not immediately self-evident from the code change.
@@ -31,7 +31,7 @@ The `library.json` (used by `cms-client`) keeps it `true` — it only applies to
 
 **Root cause**: shadcn's `init` writes `@import "tw-animate-css"` and `@import "shadcn/tailwind.css"` into `globals.css` but its automated `pnpm add` step failed due to the nested workspace issue (see above). Even after the workspace was fixed, `tw-animate-css` and `shadcn` itself were not listed as dependencies.
 
-**Fix**: `pnpm --filter @better-cms/cms add tw-animate-css shadcn`.
+**Fix**: `pnpm --filter @based-cms/cms add tw-animate-css shadcn`.
 
 Both packages must be direct dependencies of `apps/cms` — they are CSS imports, not JS imports, so they won't appear in the module graph until the build actually runs.
 
@@ -83,7 +83,7 @@ in both `requireOrgId` and `assertOrgAccess` in `convex/lib/orgGuard.ts`.
 
 ## [Phase 1] — `create-next-app` creates nested `pnpm-workspace.yaml`
 
-**Symptom**: `shadcn init` fails with `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` — cannot resolve `@better-cms/tsconfig@workspace:*` from inside `apps/cms`.
+**Symptom**: `shadcn init` fails with `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` — cannot resolve `@based-cms/tsconfig@workspace:*` from inside `apps/cms`.
 
 **Root cause**: `create-next-app` created `apps/cms/pnpm-workspace.yaml` and `apps/cms/pnpm-lock.yaml`, making `apps/cms` treat itself as the root of a separate workspace. This broke cross-workspace resolution.
 
@@ -97,7 +97,7 @@ in both `requireOrgId` and `assertOrgAccess` in `convex/lib/orgGuard.ts`.
 > Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource
 > at `https://<bucket>.r2.dev/...`. Reason: CORS request did not succeed.
 
-**Root cause**: `R2_ENDPOINT` was set to the `r2.dev` public CDN URL (e.g. `https://better-cms-media.r2.dev`) instead of the S3 API endpoint (e.g. `https://<account-id>.r2.cloudflarestorage.com`). The Convex R2 component uses `R2_ENDPOINT` to generate presigned `PUT` upload URLs. Presigned S3 uploads must go to the S3 API hostname — not the CDN hostname. Browsers sent the `PUT` to the CDN URL which has no CORS configuration for uploads.
+**Root cause**: `R2_ENDPOINT` was set to the `r2.dev` public CDN URL (e.g. `https://based-cms-media.r2.dev`) instead of the S3 API endpoint (e.g. `https://<account-id>.r2.cloudflarestorage.com`). The Convex R2 component uses `R2_ENDPOINT` to generate presigned `PUT` upload URLs. Presigned S3 uploads must go to the S3 API hostname — not the CDN hostname. Browsers sent the `PUT` to the CDN URL which has no CORS configuration for uploads.
 
 Additionally, after upload the public URL was being derived by stripping the query string from the presigned upload URL. This gave a `cloudflarestorage.com` URL that browsers cannot fetch (private S3 endpoint).
 

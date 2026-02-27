@@ -7,11 +7,11 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: '{{PROJECTNAME}}',
-  description: 'Powered by Better CMS',
+  description: 'Powered by Based CMS',
 }
 
-const slug = process.env['BETTER-CMS-SLUG']!
-const parsed = parseKey(process.env['BETTER-CMS-KEY']!)
+const slug = process.env['BASED-CMS-SLUG']!
+const parsed = parseKey(process.env['BASED-CMS-KEY']!)
 
 export default async function RootLayout({
   children,

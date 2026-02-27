@@ -63,8 +63,8 @@
       — Clerk: limit to 1 org per user (free tier).
       — `/superadmin` route restricted to developer's Clerk userId.
 
-- [ ] **Rename: better-cms → based-cms**
-      — Update all `package.json` names, import paths, env var prefixes (`BETTER-CMS-*` →
+- [x] **Rename: better-cms → based-cms**
+      — Update all `package.json` names, import paths, env var prefixes (`BASED-CMS-*` →
       `BASED-CMS-*`), Vercel project name, Convex deployment name, CLI package name on npm.
       — Token prefix: keep `bcms_` or switch to `based_` (decide before public launch to avoid
       breaking change).
@@ -78,7 +78,7 @@
 
 - [ ] Fix hardcoded `eu-west-1` region in `token.ts` (see `TODO.md` #1)
 - [ ] Fix folder delete confirmation + file orphan warning (see `TODO.md` #8)
-- [ ] `create-better-cms` CLI: bake in real CMS URL at build time (see `TODO.md` #7)
+- [ ] `create-based-cms` CLI: bake in real CMS URL at build time (see `TODO.md` #7)
 - [ ] `getSection` server helper for SSR (see `TODO.md` #6)
 
 ---
@@ -123,5 +123,5 @@
 ## Parking Lot (No Sprint Assigned)
 
 - React 18 compatibility for `CMSProvider` (see `TODO.md` #2)
-- `BETTER-CMS-SLUG` server-only vs. client-accessible pattern (see `TODO.md` #3)
+- `BASED-CMS-SLUG` server-only vs. client-accessible pattern (see `TODO.md` #3)
 - Multi-region Convex support (see `TODO.md` #1)

@@ -1,4 +1,4 @@
-# DECISIONS.md — Better CMS
+# DECISIONS.md — Based CMS
 
 > Why we made the choices we made. Read this before proposing architectural changes.
 > Last updated: 2026-02-27 (Phase 5 complete)
@@ -174,7 +174,7 @@ frontend work — no schema migrations, no component re-installation.
 
 ## Two Env Vars (SLUG + KEY) for Client Config
 
-**Decision**: Use two env vars — `BETTER-CMS-SLUG` (org slug) and `BETTER-CMS-KEY` (encoded
+**Decision**: Use two env vars — `BASED-CMS-SLUG` (org slug) and `BASED-CMS-KEY` (encoded
 Convex deployment + registration secret). The key uses a `bcms_<test|live>-<base64>` format.
 
 **Key format**: `bcms_<test|live>-<base64(deploymentName.SECRET24)>`
@@ -183,7 +183,7 @@ Convex deployment + registration secret). The key uses a `bcms_<test|live>-<base
 - `test` / `live` prefix maps to `preview` / `production` content environment
 
 **Why two vars instead of one**:
-- Keeping `BETTER-CMS-SLUG` separate makes it easy to copy/read without parsing base64
+- Keeping `BASED-CMS-SLUG` separate makes it easy to copy/read without parsing base64
 - The slug is used in public Convex queries — exposing it explicitly is intentional
 - The key encodes only what's needed for the registration call (deployment + secret)
 
@@ -192,8 +192,8 @@ Convex deployment + registration secret). The key uses a `bcms_<test|live>-<base
 - The deployment name doubles as the Convex URL (just append the region and domain)
 - Avoids a `v` versioning field — format is compact and unambiguous
 
-**Security**: `BETTER-CMS-KEY` is intentionally in `.env.local` (not `NEXT_PUBLIC_`). It is
-only accessed server-side (in `layout.tsx` for `registerSections`). The `BETTER-CMS-SLUG`
+**Security**: `BASED-CMS-KEY` is intentionally in `.env.local` (not `NEXT_PUBLIC_`). It is
+only accessed server-side (in `layout.tsx` for `registerSections`). The `BASED-CMS-SLUG`
 can safely be used client-side — it is public-facing. The Convex URL derived from the key
 is exposed to browsers via `CMSProvider` props, but that is intentional (it's a public endpoint).
 

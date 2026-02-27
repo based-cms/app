@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — Better CMS
+# ARCHITECTURE.md — Based CMS
 
 > Last updated: 2026-02-27 (Phase 5 complete)
 
@@ -6,7 +6,7 @@
 
 ## System Overview
 
-Better CMS is a two-part system:
+Based CMS is a two-part system:
 
 1. **`apps/cms`** — a central multi-tenant CMS deployed once to Vercel. All clients share this
    single deployment. Auth and data isolation are handled via Clerk Organizations + Convex `orgId`.
@@ -107,7 +107,7 @@ Client project A
 1. Client Next.js project boots
 2. cms.registerSections([teamSection, faqSection])
    → ConvexHttpClient → Convex mutation: sectionRegistry.upsertPublic
-   → authenticated by registrationToken (from BETTER-CMS-KEY, resolved via by_token index)
+   → authenticated by registrationToken (from BASED-CMS-KEY, resolved via by_token index)
    → writes { orgId, projectId, sectionType, label, fieldsSchema } per section
 
 3. CMS admin visits /admin/[projectId]/content
@@ -246,8 +246,8 @@ Cloudflare R2
 └── 1 bucket — all orgs, all projects, namespaced by r2Key
 
 Client Next.js projects
-├── BETTER-CMS-SLUG=my-project
-└── BETTER-CMS-KEY=bcms_<test|live>-<base64>
+├── BASED-CMS-SLUG=my-project
+└── BASED-CMS-KEY=bcms_<test|live>-<base64>
     (Convex URL derived from key via parseKey — no separate CONVEX_URL needed)
 ```
 

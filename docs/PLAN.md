@@ -1,7 +1,7 @@
-# PLAN.md — Better CMS: Multi-Tenant Central CMS + NPM Client Package
+# PLAN.md — Based CMS: Multi-Tenant Central CMS + NPM Client Package
 
 ```markdown
-# PLAN.md — Better CMS
+# PLAN.md — Based CMS
 
 > **System**: A two-part system consisting of a central multi-tenant CMS (`apps/cms`) deployed
 > once to Vercel serving all clients, and an NPM package (`packages/cms-client`) that client
@@ -84,7 +84,7 @@ straightforward.
 ## Monorepo Directory Map
 
 ```
-better-cms/
+based-cms/
 ├── .changeset/
 │   └── config.json
 ├── .claude/
@@ -254,7 +254,7 @@ that build and type-check cleanly. No business logic yet — structure only.
 **Root `package.json`**:
 ```json
 {
-  "name": "better-cms",
+  "name": "based-cms",
   "private": true,
   "packageManager": "pnpm@9.x.x",
   "scripts": {
@@ -317,7 +317,7 @@ Post-creation changes:
 **`apps/cms/package.json`** key entries:
 ```json
 {
-  "name": "@better-cms/cms",
+  "name": "@based-cms/cms",
   "version": "0.0.1",
   "scripts": {
     "dev": "next dev --turbopack",
@@ -328,7 +328,7 @@ Post-creation changes:
 ```
 
 **Acceptance criteria**:
-- `pnpm --filter @better-cms/cms dev` starts the dev server on port 3000
+- `pnpm --filter @based-cms/cms dev` starts the dev server on port 3000
 - TypeScript strict mode enabled, zero type errors
 - shadcn/ui components importable from `@/components/ui/*`
 - No default Next.js boilerplate remaining
@@ -342,7 +342,7 @@ Post-creation changes:
 {
   "name": "cms-client",
   "version": "0.1.0",
-  "description": "Client SDK for connecting Next.js projects to Better CMS",
+  "description": "Client SDK for connecting Next.js projects to Based CMS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -443,7 +443,7 @@ Create `packages/tsconfig/` with a shared `base.json` that both workspaces exten
 ```
 
 **Acceptance criteria**:
-- Both workspaces' `tsconfig.json` files extend `@better-cms/tsconfig/base.json`
+- Both workspaces' `tsconfig.json` files extend `@based-cms/tsconfig/base.json`
 - `pnpm type-check` passes from root
 
 #### 1.5 Changesets configuration
@@ -457,7 +457,7 @@ Create `packages/tsconfig/` with a shared `base.json` that both workspaces exten
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@better-cms/cms"]
+  "ignore": ["@based-cms/cms"]
 }
 ```
 
@@ -491,7 +491,7 @@ No UI yet.
 #### 2.1 Install and initialize Convex in `apps/cms`
 
 ```bash
-pnpm --filter @better-cms/cms add convex
+pnpm --filter @based-cms/cms add convex
 pnpm dlx convex dev --once  # creates convex/ directory and _generated/
 ```
 
@@ -502,7 +502,7 @@ pnpm dlx convex dev --once  # creates convex/ directory and _generated/
 #### 2.2 Install Convex R2 component
 
 ```bash
-pnpm --filter @better-cms/cms add @convex-dev/r2
+pnpm --filter @based-cms/cms add @convex-dev/r2
 ```
 
 **`apps/cms/convex/convex.config.ts`**:
@@ -532,7 +532,7 @@ R2 environment variables required in Convex dashboard:
 #### 2.3 Install Convex Polar component (schema only)
 
 ```bash
-pnpm --filter @better-cms/cms add @convex-dev/polar
+pnpm --filter @based-cms/cms add @convex-dev/polar
 ```
 
 Polar requires a webhook endpoint. Register in `apps/cms/app/api/polar/events/route.ts` as a
@@ -730,7 +730,7 @@ and implement the `proxy.ts` auth guard for admin routes. All auth must be light
 #### 3.1 Install Clerk in `apps/cms`
 
 ```bash
-pnpm --filter @better-cms/cms add @clerk/nextjs
+pnpm --filter @based-cms/cms add @clerk/nextjs
 ```
 
 Environment variables required in `apps/cms/.env.local`:
@@ -1401,7 +1401,7 @@ Update CLAUDE.md to reflect the completed system:
 - Convex project creation and deploy key setup
 - Convex environment variables (R2 credentials, Polar webhook secret)
 - Clerk application setup: Organizations enabled, allowed redirect URLs
-- Vercel deployment: env vars, build command (`pnpm build --filter @better-cms/cms`)
+- Vercel deployment: env vars, build command (`pnpm build --filter @based-cms/cms`)
 - Cloudflare R2: bucket creation, CORS policy for CMS domain, public access setup
 - Polar: product creation, webhook endpoint registration (`/api/polar/events`)
 - How to provision a new client org: step-by-step checklist

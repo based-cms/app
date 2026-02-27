@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Better CMS',
+  title: 'Based CMS',
   description: 'Multi-tenant content management',
 }
 

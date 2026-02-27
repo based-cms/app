@@ -26,9 +26,9 @@ export function useCMSContext(): CMSContextValue {
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 interface CMSProviderProps {
-  /** Project slug (BETTER-CMS-SLUG) */
+  /** Project slug (BASED-CMS-SLUG) */
   slug: string
-  /** Convex deployment URL — decoded from BETTER-CMS-KEY */
+  /** Convex deployment URL — decoded from BASED-CMS-KEY */
   convexUrl: string
   /** 'production' (default) or 'preview' */
   env?: 'production' | 'preview'

@@ -168,7 +168,7 @@ export default function ProjectPage({
         {/* Slug */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">BETTER-CMS-SLUG</p>
+            <p className="text-xs text-muted-foreground">BASED-CMS-SLUG</p>
             <Button
               variant="ghost"
               size="icon"
@@ -186,7 +186,7 @@ export default function ProjectPage({
         {/* Key */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">BETTER-CMS-KEY</p>
+            <p className="text-xs text-muted-foreground">BASED-CMS-KEY</p>
             <div className="flex gap-1">
               {testKey && (
                 <>
@@ -269,7 +269,7 @@ export default function ProjectPage({
                 title="Copy .env.local snippet"
                 onClick={() =>
                   copyToClipboard(
-                    `BETTER-CMS-SLUG=${project.slug}\nBETTER-CMS-KEY=${testKey}`,
+                    `BASED-CMS-SLUG=${project.slug}\nBASED-CMS-KEY=${testKey}`,
                     '.env.local snippet'
                   )
                 }
@@ -279,13 +279,13 @@ export default function ProjectPage({
             )}
           </div>
           <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
-            {`BETTER-CMS-SLUG=${project.slug}\nBETTER-CMS-KEY=${tokenVisible ? (testKey ?? '<generate a key above>') : (testKey ? `bcms_test-${'•'.repeat(20)}` : '<generate a key above>')}`}
+            {`BASED-CMS-SLUG=${project.slug}\nBASED-CMS-KEY=${tokenVisible ? (testKey ?? '<generate a key above>') : (testKey ? `bcms_test-${'•'.repeat(20)}` : '<generate a key above>')}`}
           </pre>
         </div>
 
         <p className="text-xs text-muted-foreground">
           Or scaffold a new project instantly:{' '}
-          <code className="text-xs">npx create-better-cms</code>
+          <code className="text-xs">npx create-based-cms</code>
         </p>
       </div>
     </div>
