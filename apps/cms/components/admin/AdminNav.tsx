@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { OrganizationSwitcher, UserButton, useOrganization } from '@clerk/nextjs'
+import { UserButton, useOrganization, useOrganizationList } from '@clerk/nextjs'
 import { EnvToggle } from './EnvToggle'
 import {
   DropdownMenu,
@@ -32,6 +32,9 @@ export function AdminNav() {
   const pathname = usePathname()
   const { isAuthenticated } = useConvexAuth()
   const { organization } = useOrganization()
+  const { userMemberships, setActive } = useOrganizationList({
+    userMemberships: { infinite: true },
+  })
 
   // Extract projectId from URL: /admin/:projectId/...
   const segments = pathname.split('/')
@@ -62,6 +65,8 @@ export function AdminNav() {
     }
   }
 
+  const orgs = userMemberships?.data ?? []
+
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
       {/* Main nav row */}
@@ -80,7 +85,7 @@ export function AdminNav() {
 
           <Slash />
 
-          {/* Org: clickable name + switcher icon */}
+          {/* Org: clickable name + custom switcher dropdown */}
           <div className="flex shrink-0 items-center">
             <Link
               href="/admin"
@@ -88,23 +93,49 @@ export function AdminNav() {
             >
               {organization?.name ?? '\u2026'}
             </Link>
-            {/* Clerk OrganizationSwitcher as a compact icon trigger */}
-            <OrganizationSwitcher
-              hidePersonal
-              appearance={{
-                elements: {
-                  rootBox: 'flex items-center',
-                  organizationSwitcherTrigger: cn(
-                    'rounded-md p-1 hover:bg-accent transition-colors',
-                    'shadow-none focus:shadow-none',
-                    'border-none focus:outline-none',
-                    'after:hidden',
-                    '[&>span]:hidden [&>img]:hidden [&>div]:hidden',
-                  ),
-                  organizationSwitcherTriggerIcon: 'mx-0 w-3.5 h-3.5 text-muted-foreground',
-                },
-              }}
-            />
+            {orgs.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground outline-none">
+                  <ChevronsUpDown className="h-3.5 w-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  {orgs.map((mem) => {
+                    const org = mem.organization
+                    const isCurrent = org.id === organization?.id
+                    return (
+                      <DropdownMenuItem
+                        key={org.id}
+                        onClick={() => {
+                          if (!isCurrent && setActive) {
+                            void setActive({ organization: org.id })
+                          }
+                        }}
+                        className="flex items-center gap-2.5"
+                      >
+                        {org.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={org.imageUrl}
+                            alt=""
+                            className="h-5 w-5 shrink-0 rounded"
+                          />
+                        ) : (
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold">
+                            {org.name?.[0] ?? '?'}
+                          </span>
+                        )}
+                        <span className="flex-1 truncate text-[13px]">
+                          {org.name}
+                        </span>
+                        {isCurrent && (
+                          <Check className="h-3.5 w-3.5 shrink-0 text-foreground" />
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Project selector */}
@@ -129,9 +160,7 @@ export function AdminNav() {
                   </span>
                 </Link>
                 <DropdownMenu>
-                  <DropdownMenuTrigger
-                    className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground outline-none"
-                  >
+                  <DropdownMenuTrigger className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground outline-none">
                     <ChevronsUpDown className="h-3.5 w-3.5" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
@@ -171,7 +200,7 @@ export function AdminNav() {
             </>
           )}
 
-          {/* Env toggle — left side, after breadcrumb */}
+          {/* Env toggle */}
           <Slash />
           <EnvToggle />
         </nav>
