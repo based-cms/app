@@ -162,8 +162,8 @@ export default function ProjectPage({
       </div>
 
       {/* Package setup */}
-      <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4">
-        <p className="text-xs font-medium text-muted-foreground">Package setup</p>
+      <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Package setup</p>
 
         {/* Slug */}
         <div>
@@ -257,12 +257,29 @@ export default function ProjectPage({
 
         {/* Code snippet */}
         <div>
-          <p className="mb-1.5 text-xs text-muted-foreground">
-            Add to your client project&apos;s <code className="text-xs">.env.local</code>
-          </p>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Add to your client project&apos;s <code className="text-xs">.env.local</code>
+            </p>
+            {testKey && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                title="Copy .env.local snippet"
+                onClick={() =>
+                  copyToClipboard(
+                    `BETTER-CMS-SLUG=${project.slug}\nBETTER-CMS-KEY=${testKey}`,
+                    '.env.local snippet'
+                  )
+                }
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
           <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
-            {`BETTER-CMS-SLUG=${project.slug}
-BETTER-CMS-KEY=${testKey ?? '<generate a key above>'}`}
+            {`BETTER-CMS-SLUG=${project.slug}\nBETTER-CMS-KEY=${tokenVisible ? (testKey ?? '<generate a key above>') : (testKey ? `bcms_test-${'•'.repeat(20)}` : '<generate a key above>')}`}
           </pre>
         </div>
 
