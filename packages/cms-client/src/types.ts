@@ -78,16 +78,6 @@ export interface CMSClient {
   /**
    * Upsert section definitions into Convex. Call in a Server Component or
    * Server Action on every boot. Idempotent — safe to call repeatedly.
-   *
-   * Requires `registrationToken` to be set in createCMSClient options.
    */
   registerSections: (sections: CMSSection<FieldMap>[]) => Promise<void>
-
-  /**
-   * React hook — returns realtime content for a section, typed from its fields.
-   * Returns `undefined` while loading, `[]` if no content has been added.
-   *
-   * Requires `ConvexProvider` in the component tree.
-   */
-  useSection: <T extends CMSSection<FieldMap>>(section: T) => InferSectionType<T>[] | undefined
 }

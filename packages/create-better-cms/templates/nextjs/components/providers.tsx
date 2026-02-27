@@ -1,6 +1,6 @@
 'use client'
 
-import { CMSProvider } from 'cms-client'
+import { CMSProvider } from 'cms-client/react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

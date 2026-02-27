@@ -1,10 +1,14 @@
 import { registerSections as _registerSections } from './server/registerSections'
-import { useSection as _useSection } from './hooks/useSection'
 import { decodeToken } from './token'
-import type { CMSClient, CMSClientOptions, CMSSection, InferSectionType } from './types'
+import type { CMSClient, CMSClientOptions, CMSSection } from './types'
 
 /**
  * Create a CMS client for a specific project.
+ *
+ * The returned client is **server-safe** — use it in Server Components and
+ * Server Actions to register sections on boot.
+ *
+ * For reading content in client components, use `useSection` from `cms-client/react`.
  *
  * ```ts
  * // lib/cms.ts
@@ -33,24 +37,6 @@ export function createCMSClient(options: CMSClientOptions): CMSClient {
         convexUrl: decoded.url,
         orgSlug: decoded.slug,
         registrationToken: decoded.key,
-      })
-    },
-
-    /**
-     * React hook — returns realtime typed content for a section.
-     * Returns `undefined` while loading; `[]` if no content yet.
-     *
-     * ```tsx
-     * // app/team/page.tsx — Client Component
-     * const team = cms.useSection(teamSection)
-     * // → { name: string; role: string; bio?: string; image: string }[] | undefined
-     * ```
-     */
-    useSection<T extends CMSSection>(section: T): InferSectionType<T>[] | undefined {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      return _useSection(section, {
-        orgSlug: decoded.slug,
-        ...(options.env !== undefined ? { env: options.env } : {}),
       })
     },
   }

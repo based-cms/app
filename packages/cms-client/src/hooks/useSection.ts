@@ -1,11 +1,9 @@
+'use client'
+
 import { useQuery } from 'convex/react'
 import { makeFunctionReference } from 'convex/server'
+import { useCMSContext } from '../provider'
 import type { CMSSection, InferSectionType } from '../types'
-
-interface UseSectionOptions {
-  orgSlug: string
-  env?: 'production' | 'preview'
-}
 
 // Typed reference to sectionContent.getPublic
 // Returns unknown[] — we cast to the inferred item type in the hook
@@ -26,16 +24,28 @@ const getPublicFn = makeFunctionReference<
  * Returns `[]` if the section exists but has no content.
  * Automatically updates whenever an editor saves content in the CMS.
  *
- * Must be used inside a `ConvexProvider`.
+ * Must be used inside a `<CMSProvider>`.
+ *
+ * ```tsx
+ * 'use client'
+ * import { useSection } from 'cms-client/react'
+ * import { heroSection } from '@/lib/sections'
+ *
+ * export default function Hero() {
+ *   const items = useSection(heroSection)
+ *   // ...
+ * }
+ * ```
  */
 export function useSection<T extends CMSSection>(
-  section: T,
-  options: UseSectionOptions
+  section: T
 ): InferSectionType<T>[] | undefined {
+  const { orgSlug, env } = useCMSContext()
+
   const result = useQuery(getPublicFn, {
-    orgSlug: options.orgSlug,
+    orgSlug,
     sectionType: section.name,
-    env: options.env ?? 'production',
+    env,
   })
 
   // result is undefined (loading) or unknown[] (data)

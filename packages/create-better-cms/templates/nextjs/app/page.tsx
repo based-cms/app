@@ -1,11 +1,11 @@
 'use client'
 
-import { cms } from '@/lib/cms'
+import { useSection } from 'cms-client/react'
 import { heroSection, teamSection } from '@/lib/sections'
 
 export default function Home() {
-  const hero = cms.useSection(heroSection)
-  const team = cms.useSection(teamSection)
+  const hero = useSection(heroSection)
+  const team = useSection(teamSection)
 
   return (
     <main style={{ maxWidth: 800, margin: '0 auto', padding: '2rem' }}>

@@ -40,6 +40,9 @@ Thumbs.db
 npm-debug.log*
 pnpm-debug.log*
 
+# Test scaffolds
+my-test-app/
+
 # Changesets
 # (keep .changeset/config.json, ignore generated changelogs)
 CHANGELOG.md
