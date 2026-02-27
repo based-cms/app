@@ -75,6 +75,13 @@ better-cms/
 
 ## Key Architectural Decisions
 
+### registrationToken — server-to-server auth for registerSections
+`sectionRegistry.upsertPublic` is a Convex mutation with no Clerk auth. Instead it verifies
+a `registrationToken` stored on the project document. Client project stores the token as a
+server-only env var (`BETTER_CMS_TOKEN`, no `NEXT_PUBLIC_` prefix). The token is generated
+and displayed in the CMS project page. `registerSections` uses `ConvexHttpClient` +
+`makeFunctionReference` to call this mutation from a Next.js Server Component.
+
 ### proxy.ts — NOT middleware.ts
 Next.js 16 deprecated `middleware.ts`. Use `proxy.ts` with a named export `proxy` (not
 `middleware`). Lightweight session cookie check only — full auth happens in Server Components.
@@ -138,6 +145,7 @@ projects: defineTable({
   slug: v.string(),
   primaryColor: v.string(),
   faviconUrl: v.string(),
+  registrationToken: v.optional(v.string()), // secret for registerSections()
 }).index("by_org", ["orgId"]).index("by_slug", ["slug"])
 
 // section_registry — written by client package on boot
@@ -169,7 +177,19 @@ media: defineTable({
   mimeType: v.string(),
   size: v.number(),
   uploadedAt: v.number(),
+  folder: v.optional(v.string()),  // "" = root
 }).index("by_project", ["projectId"])
+  .index("by_project_folder", ["projectId", "folder"])
+
+// folders — virtual folder hierarchy for the Files tab
+folders: defineTable({
+  orgId: v.string(),
+  projectId: v.id("projects"),
+  name: v.string(),       // leaf name
+  path: v.string(),       // full path, e.g. "images/headers"
+  parentPath: v.string(), // "" for root-level
+}).index("by_project", ["projectId"])
+  .index("by_project_parent", ["projectId", "parentPath"])
 ```
 
 ---
@@ -242,20 +262,19 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 - [x] Phase 2 — Convex schema + R2 component + Polar component (schema only) ✅
 - [x] Phase 3 — Clerk setup + proxy.ts ✅
 - [x] Phase 4 — CMS admin UI (dynamic forms, env toggle, media) ✅
-- [ ] Phase 5 — NPM package (defineCMSSection, z, useSection + full type inference)
+- [x] Phase 5 — NPM package (defineCMSSection, z, useSection + full type inference) ✅
 - [ ] Phase 6 — Final pass (all docs complete and accurate)
 
 ---
 
-## Exact Next Steps (Phase 5)
+## Exact Next Steps (Phase 6)
 
-1. Implement full type inference in `packages/cms-client/src/z.ts`
-2. Implement `defineCMSSection` with proper generic types in `defineSection.ts`
-3. Implement `createCMSClient` — `registerSections` (Server Action) + `useSection` (hook)
-4. Wire `useSection` to `api.sectionContent.getPublic` via Convex `useQuery`
-5. Wire `registerSections` to `api.sectionRegistry.upsert` via Convex HTTP action
-6. Build + type-check the package, verify inferred types are correct
-7. Write a usage test in a scratch file to confirm end-to-end types work
+1. Review and complete `docs/ARCHITECTURE.md` — update data flow diagram, verify accuracy
+2. Review and complete `docs/PACKAGE_USAGE.md` — add registration token setup steps
+3. Review and complete `docs/SETUP.md` — add R2_PUBLIC_BASE_URL + BETTER_CMS_TOKEN env vars
+4. Review `docs/FIXES.md` — document R2 presigned URL CORS fix + R2_PUBLIC_BASE_URL pattern
+5. Update `docs/DECISIONS.md` — add registrationToken auth decision rationale
+6. Final review of all Hard Constraints — verify none violated
 
 ---
 
