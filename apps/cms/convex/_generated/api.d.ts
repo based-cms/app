@@ -8,13 +8,27 @@
  * @module
  */
 
+import type * as lib_orgGuard from "../lib/orgGuard.js";
+import type * as media from "../media.js";
+import type * as polar from "../polar.js";
+import type * as projects from "../projects.js";
+import type * as sectionContent from "../sectionContent.js";
+import type * as sectionRegistry from "../sectionRegistry.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  "lib/orgGuard": typeof lib_orgGuard;
+  media: typeof media;
+  polar: typeof polar;
+  projects: typeof projects;
+  sectionContent: typeof sectionContent;
+  sectionRegistry: typeof sectionRegistry;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.
