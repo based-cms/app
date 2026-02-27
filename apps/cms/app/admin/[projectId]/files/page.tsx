@@ -11,7 +11,6 @@ import {
   Copy,
   FileIcon,
   Folder,
-  FolderOpen,
   FolderInput,
   Info,
   Loader2,
@@ -45,7 +44,7 @@ function isImage(mime: string) {
 
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
 
-function Breadcrumb({
+function FileBreadcrumb({
   currentPath,
   onNavigate,
 }: {
@@ -55,7 +54,7 @@ function Breadcrumb({
   const segments = currentPath ? currentPath.split('/') : []
 
   return (
-    <nav className="flex items-center gap-1 text-sm">
+    <nav className="flex items-center gap-1 text-[13px]">
       <button
         onClick={() => onNavigate('')}
         className={cn(
@@ -72,7 +71,7 @@ function Breadcrumb({
         const isLast = i === segments.length - 1
         return (
           <span key={path} className="flex items-center gap-1">
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronRight className="h-3 w-3 text-muted-foreground" />
             <button
               onClick={() => onNavigate(path)}
               className={cn(
@@ -112,38 +111,37 @@ function FolderCard({
   onDelete: (id: Id<'folders'>) => void
 }) {
   return (
-    <div className="group relative rounded-lg border bg-card transition-colors hover:bg-muted/40">
+    <div className="group relative rounded-lg border bg-card transition-colors hover:border-foreground/20">
       <button
-        className="flex w-full items-center gap-3 p-3 text-left"
+        className="flex w-full items-center gap-2.5 p-3 text-left"
         onClick={onEnter}
       >
-        <Folder className="h-8 w-8 shrink-0 text-muted-foreground" />
-        <span className="truncate text-sm font-medium">{folder.name}</span>
+        <Folder className="h-7 w-7 shrink-0 text-muted-foreground" />
+        <span className="truncate text-[13px] font-medium">{folder.name}</span>
       </button>
 
-      {/* Hover actions */}
       <div className="absolute right-2 top-2 hidden gap-1 group-hover:flex">
         <Button
           size="icon"
           variant="ghost"
-          className="h-7 w-7"
+          className="h-6 w-6"
           onClick={(e) => {
             e.stopPropagation()
             onRename(folder._id, folder.name)
           }}
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-3 w-3" />
         </Button>
         <Button
           size="icon"
           variant="ghost"
-          className="h-7 w-7 text-destructive hover:text-destructive"
+          className="h-6 w-6 text-destructive hover:text-destructive"
           onClick={(e) => {
             e.stopPropagation()
             onDelete(folder._id)
           }}
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-3 w-3" />
         </Button>
       </div>
     </div>
@@ -181,7 +179,6 @@ function FileCard({
 }) {
   const [showMover, setShowMover] = useState(false)
 
-  // Build picker list: Root + all folders except the current one
   const moveTargets = [
     { label: 'Root', path: '' },
     ...allFolders.map((f) => ({
@@ -192,8 +189,7 @@ function FileCard({
 
   return (
     <div className="group relative overflow-hidden rounded-lg border bg-card">
-      {/* Preview */}
-      <div className="flex h-36 items-center justify-center bg-muted">
+      <div className="flex h-32 items-center justify-center bg-muted">
         {isImage(file.mimeType) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -202,17 +198,15 @@ function FileCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <FileIcon className="h-10 w-10 text-muted-foreground" />
+          <FileIcon className="h-8 w-8 text-muted-foreground" />
         )}
       </div>
 
-      {/* Info */}
       <div className="p-2">
-        <p className="truncate text-xs font-medium">{file.filename}</p>
-        <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
+        <p className="truncate text-[11px] font-medium">{file.filename}</p>
+        <p className="text-[10px] text-muted-foreground">{formatBytes(file.size)}</p>
       </div>
 
-      {/* Hover overlay */}
       <div
         className={cn(
           'absolute inset-0 flex flex-col items-center justify-center gap-2',
@@ -223,11 +217,11 @@ function FileCard({
           <Button
             size="icon"
             variant="secondary"
-            className="h-8 w-8"
+            className="h-7 w-7"
             title="Copy URL"
             onClick={() => onCopy(file.url)}
           >
-            <Copy className="h-3.5 w-3.5" />
+            <Copy className="h-3 w-3" />
           </Button>
           <TooltipProvider>
             <Tooltip>
@@ -235,10 +229,10 @@ function FileCard({
                 <Button
                   size="icon"
                   variant="secondary"
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                   onClick={() => onRename(file._id, file.filename)}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-3 w-3" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">
@@ -249,34 +243,33 @@ function FileCard({
           <Button
             size="icon"
             variant="secondary"
-            className="h-8 w-8"
+            className="h-7 w-7"
             title="Move to folder"
             onClick={() => setShowMover((v) => !v)}
           >
-            <FolderInput className="h-3.5 w-3.5" />
+            <FolderInput className="h-3 w-3" />
           </Button>
           <Button
             size="icon"
             variant="destructive"
-            className="h-8 w-8"
+            className="h-7 w-7"
             title="Delete"
             onClick={() => onDelete(file._id, file.r2Key)}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
 
-        {/* Folder picker */}
         {showMover && (
-          <div className="w-44 overflow-hidden rounded-md border bg-popover shadow-md">
-            <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">
-              Move to…
+          <div className="w-40 overflow-hidden rounded-md border bg-popover shadow-md">
+            <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+              Move to\u2026
             </p>
-            <div className="max-h-40 overflow-y-auto">
+            <div className="max-h-36 overflow-y-auto">
               {moveTargets.map((t) => (
                 <button
                   key={t.path}
-                  className="flex w-full items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-accent"
+                  className="flex w-full items-center gap-1.5 px-2 py-1.5 text-[11px] hover:bg-accent"
                   onClick={() => {
                     onMove(file._id, t.path)
                     setShowMover(false)
@@ -287,9 +280,7 @@ function FileCard({
                 </button>
               ))}
               {moveTargets.length === 0 && (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                  No other folders
-                </p>
+                <p className="px-2 py-1.5 text-[11px] text-muted-foreground">No other folders</p>
               )}
             </div>
           </div>
@@ -324,13 +315,13 @@ function RenameInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKey}
-        className="h-7 text-sm"
+        className="h-7 text-[13px]"
       />
       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onConfirm}>
-        <Check className="h-3.5 w-3.5" />
+        <Check className="h-3 w-3" />
       </Button>
       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onCancel}>
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3 w-3" />
       </Button>
     </div>
   )
@@ -346,33 +337,18 @@ export default function FilesPage({
   const { projectId } = use(params)
   const pid = projectId as Id<'projects'>
 
-  // ── Navigation state
   const [currentPath, setCurrentPath] = useState('')
-
-  // ── Folder rename state
   const [renamingFolderId, setRenamingFolderId] = useState<Id<'folders'> | null>(null)
   const [renameFolderValue, setRenameFolderValue] = useState('')
-
-  // ── File rename state
   const [renamingFileId, setRenamingFileId] = useState<Id<'media'> | null>(null)
   const [renameFileValue, setRenameFileValue] = useState('')
-
-  // ── New folder state
   const [newFolderMode, setNewFolderMode] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
 
-  // ── Upload panel state
-  const [uploaderOpen, setUploaderOpen] = useState(false)
-
-  // ── Uploader ref for drag-drop
-  const uploaderRef = useRef<HTMLInputElement>(null)
-
-  // ── Convex queries
   const folders = useQuery(api.folders.list, { projectId: pid, parentPath: currentPath })
   const files = useQuery(api.media.list, { projectId: pid, folder: currentPath })
   const allFolders = useQuery(api.folders.listAll, { projectId: pid })
 
-  // ── Convex mutations
   const createFolder = useMutation(api.folders.create)
   const renameFolder = useMutation(api.folders.rename)
   const deleteFolder = useMutation(api.folders.remove)
@@ -381,7 +357,6 @@ export default function FilesPage({
   const removeMedia = useMutation(api.media.remove)
   const deleteFromR2 = useAction(api.media.deleteFromR2)
 
-  // ── Upload handler (inline, passes current folder)
   const generateUploadUrl = useAction(api.media.generateUploadUrl)
   const createMedia = useMutation(api.media.create)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -422,7 +397,6 @@ export default function FilesPage({
     [generateUploadUrl, createMedia, pid, currentPath]
   )
 
-  // ── Folder actions
   async function handleCreateFolder() {
     const trimmed = newFolderName.trim()
     if (!trimmed) return
@@ -463,7 +437,6 @@ export default function FilesPage({
     }
   }
 
-  // ── File actions
   function startFileRename(id: Id<'media'>, name: string) {
     setRenamingFileId(id)
     setRenameFileValue(name)
@@ -511,73 +484,73 @@ export default function FilesPage({
   return (
     <div className="mx-auto max-w-4xl">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Files</h1>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setNewFolderMode(true)
-                setNewFolderName('')
-              }}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              New folder
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  Uploading…
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-1.5 h-3.5 w-3.5" />
-                  Upload
-                </>
-              )}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*,.pdf,.svg"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void handleUploadFile(file)
-              }}
-            />
-          </div>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Files</h1>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-[13px]"
+            onClick={() => {
+              setNewFolderMode(true)
+              setNewFolderName('')
+            }}
+          >
+            <Plus className="mr-1.5 h-3 w-3" />
+            New folder
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-[13px]"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                Uploading\u2026
+              </>
+            ) : (
+              <>
+                <Upload className="mr-1.5 h-3 w-3" />
+                Upload
+              </>
+            )}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*,.pdf,.svg"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void handleUploadFile(file)
+            }}
+          />
         </div>
       </div>
 
       {/* Breadcrumb */}
-      <div className="mb-4">
-        <Breadcrumb currentPath={currentPath} onNavigate={setCurrentPath} />
+      <div className="mb-3">
+        <FileBreadcrumb currentPath={currentPath} onNavigate={setCurrentPath} />
       </div>
 
-      {/* Rename info note */}
-      <div className="mb-4 flex items-center gap-2 rounded-md border border-border/50 bg-muted/40 px-3 py-2">
-        <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <p className="text-xs text-muted-foreground">
-          File and folder renames change the display name only. URLs stay permanent.
+      {/* Info note */}
+      <div className="mb-4 flex items-center gap-2 rounded-md border border-border/50 bg-muted/40 px-3 py-1.5">
+        <Info className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <p className="text-[11px] text-muted-foreground">
+          Renames change the display name only. URLs stay permanent.
         </p>
       </div>
 
-      {/* Drag-and-drop zone — compact strip when content exists, larger when empty */}
+      {/* Drag-and-drop zone */}
       <div
         className={cn(
-          'mb-6 rounded-lg border-2 border-dashed border-muted-foreground/20 text-center text-sm text-muted-foreground transition-colors hover:border-muted-foreground/40',
+          'mb-5 rounded-lg border-2 border-dashed border-muted-foreground/20 text-center text-muted-foreground transition-colors hover:border-muted-foreground/40',
           !isLoading && (folders?.length || files?.length)
-            ? 'px-4 py-2 text-xs'
-            : 'p-8'
+            ? 'px-4 py-1.5 text-[11px]'
+            : 'py-6 text-[13px]'
         )}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
@@ -589,10 +562,10 @@ export default function FilesPage({
         Drop files here or use the Upload button above
       </div>
 
-      {/* New folder inline creation */}
+      {/* New folder inline */}
       {newFolderMode && (
         <div className="mb-4 flex items-center gap-2">
-          <Folder className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
           <RenameInput
             value={newFolderName}
             onChange={setNewFolderName}
@@ -609,16 +582,13 @@ export default function FilesPage({
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />
+            <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
       ) : folders.length === 0 && files.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">
-          This folder is empty.
-        </p>
+        <p className="text-center text-[13px] text-muted-foreground">This folder is empty.</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {/* Folders first */}
           {folders.map((folder) => (
             <div key={folder._id}>
               {renamingFolderId === folder._id ? (
@@ -644,21 +614,20 @@ export default function FilesPage({
             </div>
           ))}
 
-          {/* Files */}
           {files.map((file) => (
             <div key={file._id}>
               {renamingFileId === file._id ? (
                 <div className="rounded-lg border bg-card p-2">
-                  <div className="mb-2 flex h-20 items-center justify-center bg-muted rounded">
+                  <div className="mb-2 flex h-16 items-center justify-center rounded bg-muted">
                     {isImage(file.mimeType) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={file.url}
                         alt={file.filename}
-                        className="h-full w-full object-cover rounded"
+                        className="h-full w-full rounded object-cover"
                       />
                     ) : (
-                      <FileIcon className="h-8 w-8 text-muted-foreground" />
+                      <FileIcon className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
                   <RenameInput
@@ -670,9 +639,9 @@ export default function FilesPage({
                       setRenameFileValue('')
                     }}
                   />
-                  <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Info className="h-3 w-3 shrink-0" />
-                    Renaming only changes the display name. The file URL stays the same.
+                  <p className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Info className="h-2.5 w-2.5 shrink-0" />
+                    Renaming only changes the display name.
                   </p>
                 </div>
               ) : (

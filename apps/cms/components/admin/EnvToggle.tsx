@@ -9,16 +9,16 @@ export function EnvToggle() {
   return (
     <div
       className={cn(
-        'flex items-center gap-1 rounded-full border p-1 text-sm transition-colors',
+        'flex items-center gap-0.5 rounded-full border p-0.5 text-xs transition-colors',
         env === 'preview'
           ? 'border-amber-500/30 bg-amber-500/10'
-          : 'bg-muted'
+          : 'bg-muted/60'
       )}
     >
       <button
         onClick={() => setEnv('production')}
         className={cn(
-          'flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition-colors',
+          'flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium transition-colors',
           env === 'production'
             ? 'bg-background text-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
@@ -35,7 +35,7 @@ export function EnvToggle() {
       <button
         onClick={() => setEnv('preview')}
         className={cn(
-          'flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition-colors',
+          'flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium transition-colors',
           env === 'preview'
             ? 'bg-amber-500/20 text-amber-700 shadow-sm dark:text-amber-300'
             : 'text-muted-foreground hover:text-foreground'

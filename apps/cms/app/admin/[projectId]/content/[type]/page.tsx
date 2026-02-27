@@ -6,7 +6,6 @@ import { Id } from '@/convex/_generated/dataModel'
 import { use } from 'react'
 import { useEnv } from '@/components/providers/EnvProvider'
 import { SectionEditor } from '@/components/admin/SectionEditor'
-import { Badge } from '@/components/ui/badge'
 import type { FieldsSchema } from '@/components/admin/DynamicFieldRenderer'
 
 export default function SectionTypePage({
@@ -29,8 +28,8 @@ export default function SectionTypePage({
 
   if (registry === undefined || content === undefined) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
-        {[1, 2, 3].map((i) => (
+      <div className="mx-auto max-w-3xl space-y-3">
+        {[1, 2].map((i) => (
           <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />
         ))}
       </div>
@@ -60,14 +59,9 @@ export default function SectionTypePage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-8">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold">{registry.label}</h1>
-          <Badge variant={env === 'production' ? 'default' : 'secondary'}>
-            {env === 'production' ? 'Prod' : 'Dev'}
-          </Badge>
-        </div>
-        <p className="font-mono text-xs text-muted-foreground">{type}</p>
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold">{registry.label}</h1>
+        <p className="font-mono text-[11px] text-muted-foreground">{type}</p>
       </div>
 
       <SectionEditor
