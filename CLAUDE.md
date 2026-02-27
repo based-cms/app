@@ -238,7 +238,7 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 ## Build Status
 
 - [x] Phase 0 — CLAUDE.md + /docs scaffold + Plan tool → PLAN.md ✅
-- [ ] Phase 1 — Turborepo monorepo scaffold + workspace config
+- [x] Phase 1 — Turborepo monorepo scaffold + workspace config ✅
 - [ ] Phase 2 — Convex schema + R2 component + Polar component (schema only)
 - [ ] Phase 3 — Clerk setup + proxy.ts
 - [ ] Phase 4 — CMS admin UI (dynamic forms, env toggle, media)
@@ -247,20 +247,20 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 
 ---
 
-## Exact Next Steps (Phase 1)
+## Exact Next Steps (Phase 2)
 
-1. Create `pnpm-workspace.yaml` at repo root
-2. Create root `package.json` with `turbo`, `pnpm` as devDeps, and workspace scripts
-3. Create `turbo.json` with pipeline: `build`, `dev`, `lint`, `type-check`, `clean`
-4. Scaffold `apps/cms` via `pnpm dlx create-next-app@latest`
-5. Enable TypeScript strict mode in `apps/cms/tsconfig.json`
-6. Init shadcn/ui in `apps/cms` (New York style, CSS variables)
-7. Add initial shadcn components (button, card, input, label, select, badge, dialog, etc.)
-8. Create `packages/cms-client/` with `package.json`, `tsup.config.ts`, `tsconfig.json`, stub `src/`
-9. Create `packages/tsconfig/` shared base config
-10. Set up Changesets (`.changeset/config.json`)
-11. Run `pnpm install` and verify `pnpm build` passes from root
-12. Update this file: mark Phase 1 complete, update next steps to Phase 2
+1. Install Convex in `apps/cms`: `pnpm --filter @better-cms/cms add convex`
+2. Run `npx convex dev --once` to create `convex/` directory and link to project
+3. Install `@convex-dev/r2` and `@convex-dev/polar`
+4. Create `convex/convex.config.ts` — `app.use(r2); app.use(polar)`
+5. Write `convex/schema.ts` — all 4 tables (projects, section_registry, section_content, media)
+6. Write `convex/projects.ts` — queries + mutations
+7. Write `convex/sectionRegistry.ts` — upsert mutation, list query
+8. Write `convex/sectionContent.ts` — get/set mutations, public query by orgSlug
+9. Write `convex/media.ts` — create, list, delete mutations
+10. Write `convex/polar.ts` — component setup only, no UI
+11. Verify `npx convex dev` starts without errors
+12. Update CLAUDE.md, commit after each file
 
 ---
 
