@@ -37,6 +37,22 @@ Both packages must be direct dependencies of `apps/cms` — they are CSS imports
 
 ---
 
+## [Phase 4] — proxy.ts must use clerkMiddleware(), not a manual cookie check
+
+**Symptom**: `auth()` in `app/admin/layout.tsx` throws:
+> "Clerk: auth() was called but Clerk can't detect usage of clerkMiddleware()"
+
+**Root cause**: Clerk's `auth()` Server Component helper requires `clerkMiddleware()` to have
+run on the request — it communicates via request headers set by the middleware. Our original
+`proxy.ts` did a manual `__session` cookie check and called `NextResponse.next()`, which never
+set those headers, so `auth()` had no context.
+
+**Fix**: Replace manual cookie check with `clerkMiddleware()` from `@clerk/nextjs/server`.
+Use `createRouteMatcher` to protect `/admin(.*)` routes. The matcher is also widened to cover
+all routes (not just `/admin`) so Clerk can attach auth headers on every request.
+
+---
+
 ## [Phase 2] — R2 `generateUploadUrl` takes no `ctx` argument
 
 **Symptom**: `tsc --noEmit` fails with `Expected 0-1 arguments, but got 3` on `media.ts:86`.
