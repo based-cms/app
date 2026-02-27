@@ -52,14 +52,20 @@ async function main() {
   let projectName = args[0]
   let templateName: string | undefined
 
-  // Check for --template flag
+  // Check for flags
   const templateIdx = args.indexOf('--template')
   if (templateIdx !== -1) {
     templateName = args[templateIdx + 1]
   }
+  const localMode = args.includes('--local')
+
+  // Filter out flags from project name
+  if (projectName?.startsWith('--')) {
+    projectName = undefined
+  }
 
   // Prompt for project name if not provided
-  if (!projectName || projectName.startsWith('--')) {
+  if (!projectName) {
     const response = await prompts({
       type: 'text',
       name: 'projectName',
@@ -233,6 +239,18 @@ async function main() {
   const gitignoreSrc = path.join(targetDir, '_gitignore')
   if (fs.existsSync(gitignoreSrc)) {
     fs.renameSync(gitignoreSrc, path.join(targetDir, '.gitignore'))
+  }
+
+  // --local: rewrite cms-client dependency to file: path
+  if (localMode) {
+    const cmsClientDir = path.join(__dirname, '..', '..', 'cms-client')
+    const pkgJsonPath = path.join(targetDir, 'package.json')
+    const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8')) as {
+      dependencies: Record<string, string>
+    }
+    pkgJson.dependencies['cms-client'] = `file:${cmsClientDir}`
+    fs.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + '\n')
+    console.log(`  ${pc.green('Local mode:')} cms-client → ${pc.dim(cmsClientDir)}`)
   }
 
   // Write .env.local if token was provided
