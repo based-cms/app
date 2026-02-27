@@ -93,8 +93,7 @@ export function AdminNav() {
             >
               {organization?.name ?? '\u2026'}
             </Link>
-            {orgs.length > 1 && (
-              <DropdownMenu>
+            <DropdownMenu>
                 <DropdownMenuTrigger className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground outline-none">
                   <ChevronsUpDown className="h-3.5 w-3.5" />
                 </DropdownMenuTrigger>
@@ -135,10 +134,9 @@ export function AdminNav() {
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
           </div>
 
-          {/* Project selector */}
+          {/* Project selector + env toggle */}
           {projectId && (
             <>
               <Slash />
@@ -197,12 +195,11 @@ export function AdminNav() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+
+              <Slash />
+              <EnvToggle />
             </>
           )}
-
-          {/* Env toggle */}
-          <Slash />
-          <EnvToggle />
         </nav>
 
         {/* Right: user only */}
