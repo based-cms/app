@@ -14,12 +14,12 @@ export default function AdminPage() {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-5xl p-6">
+      <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Projects</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            One project per client website
+            Manage your client websites. Each project gets its own content sections and file storage.
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -36,7 +36,10 @@ export default function AdminPage() {
         </div>
       ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-          <p className="text-sm text-muted-foreground">No projects yet</p>
+          <p className="text-sm font-medium">No projects yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create a project to start managing content for a client website.
+          </p>
           <Button variant="outline" className="mt-4" onClick={() => setOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Create your first project
@@ -46,15 +49,19 @@ export default function AdminPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <Link key={project._id} href={`/admin/${project._id}`}>
-              <Card className="h-full transition-colors hover:bg-muted/50">
+              <Card className="h-full overflow-hidden transition-all hover:shadow-md">
+                <div
+                  className="h-1"
+                  style={{ backgroundColor: project.primaryColor || '#000000' }}
+                />
                 <CardHeader>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     {project.faviconUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={project.faviconUrl}
                         alt=""
-                        className="h-5 w-5 rounded object-cover"
+                        className="h-6 w-6 rounded object-cover"
                       />
                     )}
                     <CardTitle className="text-base">{project.name}</CardTitle>

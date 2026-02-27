@@ -1,6 +1,16 @@
 import { v } from 'convex/values'
-import { query, mutation } from './_generated/server'
+import { query, mutation, internalQuery } from './_generated/server'
 import { requireOrgId, assertOrgAccess } from './lib/orgGuard'
+
+// ─── Internal Queries ────────────────────────────────────────────────────────
+
+/** Get a project by ID — no auth, for use by other Convex functions only */
+export const getInternal = internalQuery({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, { projectId }) => {
+    return ctx.db.get(projectId)
+  },
+})
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 

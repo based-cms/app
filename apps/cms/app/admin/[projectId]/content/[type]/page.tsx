@@ -4,11 +4,9 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { use } from 'react'
-import Link from 'next/link'
 import { useEnv } from '@/components/providers/EnvProvider'
 import { SectionEditor } from '@/components/admin/SectionEditor'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft } from 'lucide-react'
 import type { FieldsSchema } from '@/components/admin/DynamicFieldRenderer'
 
 export default function SectionTypePage({
@@ -19,9 +17,6 @@ export default function SectionTypePage({
   const { projectId, type } = use(params)
   const { env } = useEnv()
 
-  const project = useQuery(api.projects.get, {
-    projectId: projectId as Id<'projects'>,
-  })
   const registry = useQuery(api.sectionRegistry.getByType, {
     projectId: projectId as Id<'projects'>,
     sectionType: type,
@@ -65,14 +60,7 @@ export default function SectionTypePage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <Link
-          href={`/admin/${projectId}/content`}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          All sections
-        </Link>
+      <div className="mb-8">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold">{registry.label}</h1>
           <Badge variant={env === 'production' ? 'default' : 'secondary'}>
@@ -84,7 +72,6 @@ export default function SectionTypePage({
 
       <SectionEditor
         projectId={projectId as Id<'projects'>}
-        slug={project?.slug}
         sectionType={type}
         env={env}
         fieldsSchema={fieldsSchema}

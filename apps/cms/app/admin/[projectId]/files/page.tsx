@@ -4,11 +4,9 @@ import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { use, useRef, useState, useCallback } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  ArrowLeft,
   ChevronRight,
   Copy,
   FileIcon,
@@ -195,7 +193,7 @@ function FileCard({
   return (
     <div className="group relative overflow-hidden rounded-lg border bg-card">
       {/* Preview */}
-      <div className="flex h-32 items-center justify-center bg-muted">
+      <div className="flex h-36 items-center justify-center bg-muted">
         {isImage(file.mimeType) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -370,7 +368,6 @@ export default function FilesPage({
   const uploaderRef = useRef<HTMLInputElement>(null)
 
   // ── Convex queries
-  const project = useQuery(api.projects.get, { projectId: pid })
   const folders = useQuery(api.folders.list, { projectId: pid, parentPath: currentPath })
   const files = useQuery(api.media.list, { projectId: pid, folder: currentPath })
   const allFolders = useQuery(api.folders.listAll, { projectId: pid })
@@ -398,7 +395,6 @@ export default function FilesPage({
           projectId: pid,
           filename: file.name,
           mimeType: file.type,
-          slug: project?.slug ?? '',
         })
         const res = await fetch(uploadUrl, {
           method: 'PUT',
@@ -423,7 +419,7 @@ export default function FilesPage({
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
-    [generateUploadUrl, createMedia, pid, currentPath, project?.slug]
+    [generateUploadUrl, createMedia, pid, currentPath]
   )
 
   // ── Folder actions
@@ -516,13 +512,6 @@ export default function FilesPage({
     <div className="mx-auto max-w-4xl">
       {/* Header */}
       <div className="mb-6">
-        <Link
-          href={`/admin/${projectId}`}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to project
-        </Link>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Files</h1>
           <div className="flex gap-2">
@@ -574,9 +563,22 @@ export default function FilesPage({
         <Breadcrumb currentPath={currentPath} onNavigate={setCurrentPath} />
       </div>
 
-      {/* Drag-and-drop zone (visible when no content yet) */}
+      {/* Rename info note */}
+      <div className="mb-4 flex items-center gap-2 rounded-md border border-border/50 bg-muted/40 px-3 py-2">
+        <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">
+          File and folder renames change the display name only. URLs stay permanent.
+        </p>
+      </div>
+
+      {/* Drag-and-drop zone — compact strip when content exists, larger when empty */}
       <div
-        className="mb-6 rounded-lg border-2 border-dashed border-muted-foreground/20 p-4 text-center text-sm text-muted-foreground transition-colors hover:border-muted-foreground/40"
+        className={cn(
+          'mb-6 rounded-lg border-2 border-dashed border-muted-foreground/20 text-center text-sm text-muted-foreground transition-colors hover:border-muted-foreground/40',
+          !isLoading && (folders?.length || files?.length)
+            ? 'px-4 py-2 text-xs'
+            : 'p-8'
+        )}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault()

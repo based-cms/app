@@ -7,13 +7,12 @@ import { Id } from '@/convex/_generated/dataModel'
 import { DynamicFieldRenderer, type FieldsSchema } from './DynamicFieldRenderer'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface Props {
   projectId: Id<'projects'>
-  slug?: string
   sectionType: string
   env: 'production' | 'preview'
   fieldsSchema: FieldsSchema
@@ -22,30 +21,32 @@ interface Props {
 
 export function SectionEditor({
   projectId,
-  slug,
   sectionType,
   env,
   fieldsSchema,
   initialItems,
 }: Props) {
   const [items, setItems] = useState<Record<string, unknown>[]>(initialItems)
-  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const setItems_ = useMutation(api.sectionContent.setItems)
 
   const save = useCallback(
     async (nextItems: Record<string, unknown>[]) => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+      setSaveStatus('saving')
       saveTimer.current = setTimeout(async () => {
-        setSaving(true)
         try {
           await setItems_({ projectId, sectionType, env, items: nextItems })
+          setSaveStatus('saved')
+          savedTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
         } catch {
+          setSaveStatus('idle')
           toast.error('Failed to save')
-        } finally {
-          setSaving(false)
         }
-      }, 600) // debounce 600ms
+      }, 600)
     },
     [setItems_, projectId, sectionType, env]
   )
@@ -59,7 +60,6 @@ export function SectionEditor({
   }
 
   function addItem() {
-    // Build a new item with default values from fieldsSchema
     const blank: Record<string, unknown> = {}
     for (const [key, def] of Object.entries(fieldsSchema)) {
       blank[key] = def.defaultValue ?? (def.type === 'boolean' ? false : def.type === 'number' ? 0 : '')
@@ -80,10 +80,23 @@ export function SectionEditor({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {items.length} item{items.length !== 1 ? 's' : ''}
-          {saving && <span className="ml-2 text-xs opacity-60">Saving…</span>}
-        </p>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            {items.length} item{items.length !== 1 ? 's' : ''}
+          </span>
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1.5 text-xs">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+              Saving
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1.5 text-xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Saved
+            </span>
+          )}
+        </div>
         <Button size="sm" onClick={addItem}>
           <Plus className="mr-1.5 h-3.5 w-3.5" />
           Add item
@@ -102,8 +115,7 @@ export function SectionEditor({
         <div className="space-y-4">
           {items.map((item, index) => (
             <div key={index} className="rounded-lg border bg-card">
-              <div className="flex items-center gap-2 border-b px-4 py-2">
-                <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+              <div className="flex items-center gap-2 border-b px-4 py-2.5">
                 <span className="flex-1 text-xs font-medium text-muted-foreground">
                   Item {index + 1}
                 </span>
@@ -116,7 +128,7 @@ export function SectionEditor({
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <div className="space-y-4 p-4">
+              <div className="space-y-5 p-5">
                 {fieldEntries.map(([key, def], fi) => (
                   <div key={key}>
                     <DynamicFieldRenderer
@@ -125,9 +137,8 @@ export function SectionEditor({
                       value={item[key]}
                       onChange={(val) => updateItem(index, key, val)}
                       projectId={projectId}
-                      slug={slug}
                     />
-                    {fi < fieldEntries.length - 1 && <Separator className="mt-4" />}
+                    {fi < fieldEntries.length - 1 && <Separator className="mt-5" />}
                   </div>
                 ))}
               </div>

@@ -7,7 +7,14 @@ export function EnvToggle() {
   const { env, setEnv } = useEnv()
 
   return (
-    <div className="flex items-center gap-1 rounded-full border bg-muted p-1 text-sm">
+    <div
+      className={cn(
+        'flex items-center gap-1 rounded-full border p-1 text-sm transition-colors',
+        env === 'preview'
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : 'bg-muted'
+      )}
+    >
       <button
         onClick={() => setEnv('production')}
         className={cn(
@@ -30,7 +37,7 @@ export function EnvToggle() {
         className={cn(
           'flex items-center gap-1.5 rounded-full px-3 py-1 font-medium transition-colors',
           env === 'preview'
-            ? 'bg-background text-foreground shadow-sm'
+            ? 'bg-amber-500/20 text-amber-700 shadow-sm dark:text-amber-300'
             : 'text-muted-foreground hover:text-foreground'
         )}
       >

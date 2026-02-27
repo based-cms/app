@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation, action } from './_generated/server'
 import { R2 } from '@convex-dev/r2'
-import { components } from './_generated/api'
+import { components, internal } from './_generated/api'
 import { requireOrgId } from './lib/orgGuard'
 
 const r2 = new R2(components.r2)
@@ -123,12 +123,14 @@ export const generateUploadUrl = action({
     projectId: v.id('projects'),
     filename: v.string(),
     mimeType: v.string(),
-    slug: v.optional(v.string()),
   },
-  handler: async (_ctx, { projectId, filename, slug }) => {
-    // Namespace R2 keys by slug (human-readable) or projectId (fallback)
-    const prefix = slug || projectId
-    const r2Key = `${prefix}/${Date.now()}-${filename}`
+  handler: async (ctx, { projectId, filename }): Promise<{ uploadUrl: string; r2Key: string; publicUrl: string }> => {
+    // Resolve slug server-side — never trust client-passed values for R2 paths
+    const project = await ctx.runQuery(internal.projects.getInternal, { projectId })
+    if (!project) throw new Error('Project not found')
+    if (!project.slug) throw new Error('Project has no slug configured')
+
+    const r2Key = `${project.slug}/${Date.now()}-${filename}`
     const { url: uploadUrl } = await r2.generateUploadUrl(r2Key)
 
     // Public URL is served from the r2.dev CDN (or custom domain), not from the

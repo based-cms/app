@@ -10,12 +10,11 @@ import { toast } from 'sonner'
 
 interface Props {
   projectId: Id<'projects'>
-  slug?: string
   folder?: string
   onUploaded?: (url: string) => void
 }
 
-export function MediaUploader({ projectId, slug, folder, onUploaded }: Props) {
+export function MediaUploader({ projectId, folder, onUploaded }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const generateUploadUrl = useAction(api.media.generateUploadUrl)
@@ -29,7 +28,6 @@ export function MediaUploader({ projectId, slug, folder, onUploaded }: Props) {
         projectId,
         filename: file.name,
         mimeType: file.type,
-        slug: slug ?? '',
       })
 
       // 2. Upload directly to R2

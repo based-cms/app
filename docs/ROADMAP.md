@@ -14,28 +14,28 @@
 
 ### Bug Fixes
 
-- [ ] **Never display ENV vars permanently in the project setup UI** (`TODO.md` #existing)
-      — Show keys once after generation, then mask them. Add a "copy" button.
-- [ ] **R2 paths: use `project-slug` instead of Convex document ID**
-      — File keys in Cloudflare R2 should be human-readable (`my-project/images/hero.png`
-      not `jd7x9k2m/images/hero.png`). Set this before the first real client deployment.
-      — Also reflect folder renames/file renames in the R2 key (or document that renaming is
-      cosmetic-only and the URL stays stable — see `TODO.md` #9).
+- [x] **Never display ENV vars permanently in the project setup UI** (`TODO.md` #existing)
+      — Keys shown only immediately after generation (`justGenerated` state). Page reload
+      masks them. Copy buttons still work when masked. Regeneration requires confirmation.
+- [x] **R2 paths: use `project-slug` instead of Convex document ID**
+      — Slug is now resolved server-side in `generateUploadUrl` via internal query.
+      Client code no longer passes `slug` — eliminates fallback to Convex doc ID.
 
 ### Features
 
-- [ ] **File/image picker in content forms — URL dropdown with folder hierarchy**
-      — When a field is of type `z.image()` or any URL field, show a media picker instead of a
-      plain text input. Display files grouped by folder (matching the Files tab hierarchy).
-      — Selecting a file inserts its public URL into the field.
-- [ ] **Admin pages + overall design refresh**
-      — Admin UI polish: consistent spacing, clear hierarchy, professional feel.
-      — Goal: something you can confidently show to clients.
+- [x] **File/image picker in content forms — URL dropdown with folder hierarchy**
+      — `MediaPicker` component integrated into `DynamicFieldRenderer` for image/video/document
+      fields. Files grouped by folder with upload support directly from the picker.
+- [x] **Admin pages + overall design refresh**
+      — Project sidebar layout, colored project cards, icon backgrounds, step-numbered
+      setup flow, dark code blocks, save status indicator, collapsible drop zone,
+      amber-tinted dev mode toggle. Consistent hierarchy across all pages.
 
 ### Quality
 
-- [ ] **Document that renaming files is cosmetic** (URL stays stable)
-      — Add a tooltip/note in the Files tab so clients don't expect URLs to update on rename.
+- [x] **Document that renaming files is cosmetic** (URL stays stable)
+      — Persistent info note in Files page header + tooltip on rename button + inline text during
+      rename. Clients see this context at all times.
 
 ---
 

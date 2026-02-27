@@ -8,7 +8,17 @@ import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, FolderOpen, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { FileText, FolderOpen, Copy, RefreshCw, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 
 /**
@@ -20,8 +30,6 @@ function getDeploymentName(): string {
   if (!url) return '<deployment-name>'
   try {
     const hostname = new URL(url).hostname
-    // hostname: elated-tapir-331.eu-central-1.convex.cloud
-    // deployment name is the first segment
     return hostname.split('.')[0] ?? '<deployment-name>'
   } catch {
     return '<deployment-name>'
@@ -49,8 +57,9 @@ export default function ProjectPage({
     projectId: projectId as Id<'projects'>,
   })
   const generateToken = useMutation(api.projects.generateRegistrationToken)
-  const [tokenVisible, setTokenVisible] = useState(false)
+  const [justGenerated, setJustGenerated] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const deploymentName = useMemo(() => getDeploymentName(), [])
 
@@ -76,7 +85,7 @@ export default function ProjectPage({
     setGenerating(true)
     try {
       await generateToken({ projectId: projectId as Id<'projects'> })
-      setTokenVisible(true)
+      setJustGenerated(true)
       toast.success('New key generated')
     } catch {
       toast.error('Failed to generate key')
@@ -85,44 +94,36 @@ export default function ProjectPage({
     }
   }
 
+  function handleGenerateClick() {
+    if (testKey) {
+      setConfirmOpen(true)
+    } else {
+      void handleGenerateToken()
+    }
+  }
+
   function copyToClipboard(text: string, label: string) {
     void navigator.clipboard.writeText(text)
     toast.success(`${label} copied`)
   }
 
-  const maskedKey = testKey
-    ? `bcms_test-${'•'.repeat(20)}`
-    : null
+  const showKeys = justGenerated && testKey && liveKey
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="mb-6">
-        <Link
-          href="/admin"
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          All projects
-        </Link>
-        <div className="flex items-center gap-3">
-          {project.faviconUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={project.faviconUrl} alt="" className="h-8 w-8 rounded" />
-          )}
-          <div>
-            <h1 className="text-2xl font-semibold">{project.name}</h1>
-            <p className="font-mono text-xs text-muted-foreground">{project.slug}</p>
-          </div>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold">Overview</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Content card */}
         <Link href={`/admin/${projectId}/content`}>
-          <Card className="h-full transition-colors hover:bg-muted/50">
+          <Card className="h-full transition-all hover:shadow-md">
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
+                  <FileText className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                </div>
                 <CardTitle className="text-base">Content</CardTitle>
               </div>
               <CardDescription>
@@ -149,10 +150,12 @@ export default function ProjectPage({
 
         {/* Files card */}
         <Link href={`/admin/${projectId}/files`}>
-          <Card className="h-full transition-colors hover:bg-muted/50">
+          <Card className="h-full transition-all hover:shadow-md">
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
+                  <FolderOpen className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
+                </div>
                 <CardTitle className="text-base">Files</CardTitle>
               </div>
               <CardDescription>Upload and manage files in nested folders</CardDescription>
@@ -162,132 +165,163 @@ export default function ProjectPage({
       </div>
 
       {/* Package setup */}
-      <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Package setup</p>
+      <div className="mt-8 space-y-5 rounded-lg border p-6">
+        <p className="text-sm font-semibold">Connect your client project</p>
 
-        {/* Slug */}
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">BASED-CMS-SLUG</p>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => copyToClipboard(project.slug, 'Slug')}
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
+        {/* Step 1: Install */}
+        <div className="flex gap-3">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+            1
           </div>
-          <code className="block w-full overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
-            {project.slug}
-          </code>
+          <div className="flex-1">
+            <p className="text-sm font-medium">Generate an API key</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {testKey
+                ? 'Key generated. Copy it below or regenerate.'
+                : 'Click the button to create your API key.'}
+            </p>
+            <div className="mt-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">BASED-CMS-KEY</p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  disabled={generating}
+                  onClick={handleGenerateClick}
+                  title={testKey ? 'Regenerate key' : 'Generate key'}
+                >
+                  <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+
+              {showKeys && (
+                <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Copy your keys now. They won&apos;t be shown again after you leave this page.
+                  </p>
+                </div>
+              )}
+
+              {testKey && liveKey ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] shrink-0">test</Badge>
+                    <code className="flex-1 overflow-hidden rounded bg-muted px-3 py-2 font-mono text-xs">
+                      {showKeys ? testKey : `bcms_test-${'•'.repeat(20)}`}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => copyToClipboard(testKey, 'Test key')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] shrink-0">live</Badge>
+                    <code className="flex-1 overflow-hidden rounded bg-muted px-3 py-2 font-mono text-xs">
+                      {showKeys ? liveKey : `bcms_live-${'•'.repeat(20)}`}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => copyToClipboard(liveKey, 'Live key')}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
+                  No key yet — click <RefreshCw className="inline h-3 w-3" /> to generate one
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Key */}
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">BASED-CMS-KEY</p>
-            <div className="flex gap-1">
-              {testKey && (
-                <>
+        {/* Step 2: Add env vars */}
+        <div className="flex gap-3">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+            2
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">
+              Add to <code className="text-xs">.env.local</code>
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Paste these into your client project&apos;s environment file.
+            </p>
+            <div className="mt-3">
+              <div className="flex justify-end mb-1">
+                {testKey && (
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => setTokenVisible((v) => !v)}
+                    title="Copy .env.local snippet"
+                    onClick={() =>
+                      copyToClipboard(
+                        `BASED-CMS-SLUG=${project.slug}\nBASED-CMS-KEY=${testKey}`,
+                        '.env.local snippet'
+                      )
+                    }
                   >
-                    {tokenVisible ? (
-                      <EyeOff className="h-3 w-3" />
-                    ) : (
-                      <Eye className="h-3 w-3" />
-                    )}
+                    <Copy className="h-3 w-3" />
                   </Button>
-                </>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                disabled={generating}
-                onClick={handleGenerateToken}
-                title={testKey ? 'Regenerate key' : 'Generate key'}
-              >
-                <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
-              </Button>
+                )}
+              </div>
+              <pre className="overflow-x-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-100 dark:bg-zinc-900">
+                <span className="text-zinc-500"># Based CMS</span>
+                {'\n'}
+                <span className="text-emerald-400">BASED-CMS-SLUG</span>
+                <span className="text-zinc-400">=</span>
+                {project.slug}
+                {'\n'}
+                <span className="text-emerald-400">BASED-CMS-KEY</span>
+                <span className="text-zinc-400">=</span>
+                {showKeys ? testKey : (testKey ? `bcms_test-${'•'.repeat(20)}` : '<generate a key above>')}
+              </pre>
             </div>
           </div>
-
-          {testKey && liveKey ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] shrink-0">test</Badge>
-                <code className="flex-1 overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
-                  {tokenVisible ? testKey : maskedKey}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0"
-                  onClick={() => copyToClipboard(testKey, 'Test key')}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] shrink-0">live</Badge>
-                <code className="flex-1 overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
-                  {tokenVisible ? liveKey : `bcms_live-${'•'.repeat(20)}`}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0"
-                  onClick={() => copyToClipboard(liveKey, 'Live key')}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="rounded bg-background px-3 py-2 text-xs text-muted-foreground">
-              No key yet — click ↻ to generate one
-            </p>
-          )}
         </div>
 
-        {/* Code snippet */}
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              Add to your client project&apos;s <code className="text-xs">.env.local</code>
-            </p>
-            {testKey && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                title="Copy .env.local snippet"
-                onClick={() =>
-                  copyToClipboard(
-                    `BASED-CMS-SLUG=${project.slug}\nBASED-CMS-KEY=${testKey}`,
-                    '.env.local snippet'
-                  )
-                }
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-            )}
+        {/* Step 3: Alternative */}
+        <div className="flex gap-3">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+            3
           </div>
-          <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
-            {`BASED-CMS-SLUG=${project.slug}\nBASED-CMS-KEY=${tokenVisible ? (testKey ?? '<generate a key above>') : (testKey ? `bcms_test-${'•'.repeat(20)}` : '<generate a key above>')}`}
-          </pre>
+          <div className="flex-1">
+            <p className="text-sm font-medium">Or scaffold a new project</p>
+            <pre className="mt-2 overflow-x-auto rounded-lg bg-zinc-950 px-4 py-3 text-xs text-zinc-100 dark:bg-zinc-900">
+              npx create-based-cms
+            </pre>
+          </div>
         </div>
-
-        <p className="text-xs text-muted-foreground">
-          Or scaffold a new project instantly:{' '}
-          <code className="text-xs">npx create-based-cms</code>
-        </p>
       </div>
+
+      {/* Regenerate confirmation dialog */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerate API key?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will invalidate your current key. Any client projects using the old key will
+              stop working until you update their environment variables.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleGenerateToken()}>
+              Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

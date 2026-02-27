@@ -25,7 +25,6 @@ interface Props {
   value: unknown
   onChange: (value: unknown) => void
   projectId?: Id<'projects'>
-  slug?: string
 }
 
 export function DynamicFieldRenderer({
@@ -34,7 +33,6 @@ export function DynamicFieldRenderer({
   value,
   onChange,
   projectId,
-  slug,
 }: Props) {
   const label = def.labelText ?? fieldKey
   const id = `field-${fieldKey}`
@@ -71,7 +69,6 @@ export function DynamicFieldRenderer({
           {projectId && (
             <MediaPicker
               projectId={projectId}
-              slug={slug}
               fieldType={def.type}
               accept={def.accept}
               value={url}

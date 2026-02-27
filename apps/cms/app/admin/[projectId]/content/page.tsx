@@ -8,7 +8,8 @@ import Link from 'next/link'
 import { useEnv } from '@/components/providers/EnvProvider'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import type { FieldsSchema } from '@/components/admin/DynamicFieldRenderer'
 
 export default function ContentPage({
   params,
@@ -23,14 +24,7 @@ export default function ContentPage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <Link
-          href={`/admin/${projectId}`}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to project
-        </Link>
+      <div className="mb-8">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold">Content</h1>
           <Badge variant={env === 'production' ? 'default' : 'secondary'}>
@@ -50,44 +44,58 @@ export default function ContentPage({
         </div>
       ) : sections.length === 0 ? (
         <div className="rounded-lg border border-dashed py-16 text-center">
-          <p className="text-sm text-muted-foreground">No sections registered yet.</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Add <code className="rounded bg-muted px-1">cms.registerSections()</code> to your client app&apos;s layout.
+          <p className="text-sm font-medium">No sections registered yet</p>
+          <p className="mx-auto mt-2 max-w-sm text-xs text-muted-foreground">
+            Define sections in your client app using{' '}
+            <code className="rounded bg-muted px-1">defineCMSSection()</code> and call{' '}
+            <code className="rounded bg-muted px-1">registerSections()</code> on boot.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {sections.map((section) => (
-            <Link
-              key={section._id}
-              href={`/admin/${projectId}/content/${section.sectionType}`}
-            >
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardHeader className="flex flex-row items-center py-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-base">{section.label}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 font-mono text-xs">
-                      {section.sectionType}
-                      {(() => {
-                        try {
-                          const fields = JSON.parse(section.fieldsSchema) as Record<string, unknown>
-                          const count = Object.keys(fields).length
-                          return (
-                            <Badge variant="outline" className="text-[10px] font-normal">
-                              {count} field{count !== 1 ? 's' : ''}
-                            </Badge>
-                          )
-                        } catch {
-                          return null
-                        }
-                      })()}
-                    </CardDescription>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+          {sections.map((section) => {
+            let fieldNames: string[] = []
+            try {
+              const fields = JSON.parse(section.fieldsSchema) as FieldsSchema
+              fieldNames = Object.keys(fields)
+            } catch {
+              // ignore
+            }
+
+            return (
+              <Link
+                key={section._id}
+                href={`/admin/${projectId}/content/${section.sectionType}`}
+              >
+                <Card className="transition-all hover:shadow-md">
+                  <CardHeader className="flex flex-row items-center py-4">
+                    <div className="flex-1">
+                      <CardTitle className="text-base">{section.label}</CardTitle>
+                      <CardDescription className="flex items-center gap-2 font-mono text-xs">
+                        {section.sectionType}
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          {fieldNames.length} field{fieldNames.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </CardDescription>
+                      {fieldNames.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {fieldNames.map((name) => (
+                            <span
+                              key={name}
+                              className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                </Card>
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>

@@ -30,7 +30,6 @@ type MediaFieldType = 'image' | 'video' | 'document'
 
 interface Props {
   projectId: Id<'projects'>
-  slug?: string
   fieldType: MediaFieldType
   accept?: string[]
   value: string
@@ -93,7 +92,6 @@ function getAcceptString(fieldType: MediaFieldType, accept?: string[]): string {
 
 export function MediaPicker({
   projectId,
-  slug,
   fieldType,
   accept,
   value,
@@ -130,7 +128,6 @@ export function MediaPicker({
           projectId,
           filename: file.name,
           mimeType: file.type,
-          slug: slug ?? '',
         })
         const res = await fetch(uploadUrl, {
           method: 'PUT',
@@ -157,7 +154,7 @@ export function MediaPicker({
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
-    [generateUploadUrl, createMedia, projectId, slug, onChange]
+    [generateUploadUrl, createMedia, projectId, onChange]
   )
 
   return (
