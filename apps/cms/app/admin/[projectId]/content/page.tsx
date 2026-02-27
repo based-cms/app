@@ -66,8 +66,21 @@ export default function ContentPage({
                 <CardHeader className="flex flex-row items-center py-4">
                   <div className="flex-1">
                     <CardTitle className="text-base">{section.label}</CardTitle>
-                    <CardDescription className="font-mono text-xs">
+                    <CardDescription className="flex items-center gap-2 font-mono text-xs">
                       {section.sectionType}
+                      {(() => {
+                        try {
+                          const fields = JSON.parse(section.fieldsSchema) as Record<string, unknown>
+                          const count = Object.keys(fields).length
+                          return (
+                            <Badge variant="outline" className="text-[10px] font-normal">
+                              {count} field{count !== 1 ? 's' : ''}
+                            </Badge>
+                          )
+                        } catch {
+                          return null
+                        }
+                      })()}
                     </CardDescription>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />

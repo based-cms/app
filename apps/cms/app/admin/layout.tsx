@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { UserButton } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { EnvProvider } from '@/components/providers/EnvProvider'
 import { EnvToggle } from '@/components/admin/EnvToggle'
 import { AuthGate } from '@/components/admin/AuthGate'
@@ -18,8 +19,13 @@ export default async function AdminLayout({
   return (
     <EnvProvider>
       <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background px-6">
-          <span className="font-semibold tracking-tight">Better CMS</span>
+        <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur-sm px-6">
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-[13px] font-bold text-background">
+              B
+            </span>
+            <span className="font-semibold tracking-tight">Better CMS</span>
+          </Link>
           <div className="flex items-center gap-4">
             <EnvToggle />
             <UserButton afterSignOutUrl="/sign-in" />
