@@ -240,21 +240,26 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 - [x] Phase 0 — CLAUDE.md + /docs scaffold + Plan tool → PLAN.md ✅
 - [x] Phase 1 — Turborepo monorepo scaffold + workspace config ✅
 - [x] Phase 2 — Convex schema + R2 component + Polar component (schema only) ✅
-- [ ] Phase 3 — Clerk setup + proxy.ts
+- [x] Phase 3 — Clerk setup + proxy.ts ✅
 - [ ] Phase 4 — CMS admin UI (dynamic forms, env toggle, media)
 - [ ] Phase 5 — NPM package (defineCMSSection, z, useSection + full type inference)
 - [ ] Phase 6 — Final pass (all docs complete and accurate)
 
 ---
 
-## Exact Next Steps (Phase 3)
+## Exact Next Steps (Phase 4)
 
-1. Install `@clerk/nextjs` in `apps/cms`
-2. Wrap root layout with `ClerkProvider` + `ConvexProviderWithClerk`
-3. Create `app/(auth)/sign-in/[[...sign-in]]/page.tsx`
-4. Write `proxy.ts` at repo root of `apps/cms` — lightweight session cookie check
-5. Create `app/admin/layout.tsx` — org context shell, active org guard
-6. Verify dev server starts and redirects unauthenticated users to /sign-in
+**Before starting:** Set up the Clerk → Convex JWT template (see docs/SETUP.md → "Configure Convex JWT Template"). Without this, all auth will fail at runtime.
+
+1. `app/admin/page.tsx` — project list for current org
+2. `app/admin/[projectId]/page.tsx` — project dashboard with env toggle
+3. `app/admin/[projectId]/content/page.tsx` — list registered sections
+4. `app/admin/[projectId]/content/[type]/page.tsx` — dynamic form editor (inline edit, auto-save)
+5. `app/admin/[projectId]/media/page.tsx` — R2 upload + media library
+6. `components/admin/EnvToggle.tsx` — environment context, always visible in header
+7. `components/admin/DynamicFieldRenderer.tsx` — renders form fields from fieldsSchema JSON
+8. `components/admin/SectionEditor.tsx` — list + edit items for a section
+9. `components/admin/MediaUploader.tsx` — R2 presigned upload flow
 
 ---
 

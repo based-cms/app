@@ -76,6 +76,20 @@ R2_BUCKET=<bucket-name>
    - After sign-up redirect: `/admin`
 6. Add `http://localhost:3000` to allowed origins
 
+### Configure Convex JWT Template (Required)
+
+This step is what allows Convex to verify Clerk sessions and read `orgId` from the JWT.
+
+1. Clerk dashboard → Configure → JWT Templates
+2. Click **New template** → choose **Convex**
+3. The template is pre-filled — do not change it
+4. Click **Save**
+5. Copy the **Issuer** URL shown (e.g. `https://flying-mule-67.clerk.accounts.dev`)
+6. In Convex dashboard → your project → Settings → Environment Variables, add:
+   - `CLERK_ISSUER_URL` = the issuer URL you copied
+
+Without this step, `auth()` in Server Components and `requireOrgId()` in Convex functions will fail.
+
 ### Creating Client Organizations
 
 As the admin developer:
