@@ -76,7 +76,7 @@ export default function SettingsPage({
     liveUrl,
     testUrl,
     testAvailable,
-    getAuthSecondaryClient,
+    getAuthTestClient,
     getAuthBothClients,
   } = useDeployment()
 
@@ -103,24 +103,6 @@ export default function SettingsPage({
         ...(slug !== project.slug ? { slug } : {}),
       })
       toast.success('Project updated')
-
-      // Sync to secondary deployment
-      if (testAvailable) {
-        const secondary = await getAuthSecondaryClient()
-        if (secondary) {
-          try {
-            // Update by finding via the OLD slug (it hasn't changed on secondary yet)
-            const updateRef = makeFunctionReference<'mutation'>('projects:update' as never)
-            // We can't use projectId on secondary (different IDs).
-            // Instead sync name only if slug didn't change, or handle slug change carefully.
-            // For simplicity, we'll just accept that the secondary may drift for name/slug changes.
-            // The user can use data migration to re-sync.
-            void secondary.mutation(updateRef, {})
-          } catch {
-            // Silent — secondary sync for metadata is best-effort
-          }
-        }
-      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -159,20 +141,29 @@ export default function SettingsPage({
       const token = await generateToken({ projectId: pid })
       setJustGenerated(true)
 
-      // Sync token to secondary deployment
+      // Sync token to test deployment (so client packages using test keys work)
       if (testAvailable && project?.slug) {
-        const secondary = await getAuthSecondaryClient()
-        if (secondary) {
+        const testClient = await getAuthTestClient()
+        if (testClient) {
           try {
+            // Ensure shadow project exists on test deployment first
+            const ensureRef = makeFunctionReference<'mutation'>(
+              'projects:ensureExists' as never
+            )
+            await testClient.mutation(ensureRef, {
+              slug: project.slug,
+              name: project.name,
+            })
+            // Then sync the token
             const syncRef = makeFunctionReference<'mutation'>(
               'projects:syncRegistrationToken' as never
             )
-            await secondary.mutation(syncRef, {
+            await testClient.mutation(syncRef, {
               slug: project.slug,
               registrationToken: token,
             })
           } catch {
-            toast.warning('Token synced locally but failed on secondary deployment')
+            toast.warning('Token synced locally but failed on test deployment')
           }
         }
       }
@@ -272,17 +263,17 @@ export default function SettingsPage({
     try {
       await removeProject({ projectId: pid })
 
-      // Cascade-delete on secondary
+      // Best-effort cleanup on test deployment
       if (testAvailable) {
-        const secondary = await getAuthSecondaryClient()
-        if (secondary) {
+        const testClient = await getAuthTestClient()
+        if (testClient) {
           try {
             const removeRef = makeFunctionReference<'mutation'>(
               'projects:removeBySlug' as never
             )
-            await secondary.mutation(removeRef, { slug: project.slug })
+            await testClient.mutation(removeRef, { slug: project.slug })
           } catch {
-            // Best-effort
+            // Silent — test deployment cleanup is best-effort
           }
         }
       }

@@ -30,19 +30,23 @@ interface DeploymentContextValue {
   liveUrl: string
   /** Test deployment URL (null if not configured) */
   testUrl: string | null
-  /** URL of the currently active deployment */
-  activeUrl: string
   /** Whether a test deployment is configured */
   testAvailable: boolean
   /**
-   * Returns a ConvexHttpClient for the OTHER deployment, pre-authenticated
-   * with the current Clerk JWT. Used for cross-deployment writes.
-   * Returns null if there is no secondary deployment.
+   * ConvexReactClient for the test deployment.
+   * Used to wrap content areas with a secondary ConvexProvider.
+   * Null if test URL not configured.
    */
-  getAuthSecondaryClient: () => Promise<ConvexHttpClient | null>
+  testReactClient: ConvexReactClient | null
+  /**
+   * Returns an authenticated ConvexHttpClient for the test deployment.
+   * Used for cross-deployment operations (migration, ensure-project).
+   * Returns null if test URL not configured.
+   */
+  getAuthTestClient: () => Promise<ConvexHttpClient | null>
   /**
    * Returns authenticated HTTP clients for BOTH deployments.
-   * Used for dual-write operations (project create/delete).
+   * Used for data migration.
    */
   getAuthBothClients: () => Promise<{
     live: ConvexHttpClient
@@ -72,19 +76,26 @@ const ENV_TO_CONTENT: Record<DeploymentEnv, ContentEnv> = {
 // Provider
 // ---------------------------------------------------------------------------
 
+/**
+ * DeploymentProvider — the Convex provider ALWAYS points to the LIVE deployment.
+ *
+ * Projects, section_registry, media, and folders are always queried from live.
+ * Only content pages opt in to the test deployment by wrapping their content
+ * area with a secondary ConvexProvider using `testReactClient`.
+ */
 export function DeploymentProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth()
   const [env, setEnv] = useState<DeploymentEnv>('live')
 
-  // Memoize reactive clients (one per deployment URL)
+  // Always-live reactive client (for the main ConvexProvider)
   const liveClient = useMemo(() => new ConvexReactClient(LIVE_URL), [])
-  const testClient = useMemo(
+
+  // Test reactive client (for wrapping content areas when env=test)
+  const testReactClient = useMemo(
     () => (TEST_URL ? new ConvexReactClient(TEST_URL) : null),
     []
   )
 
-  const activeClient = env === 'test' && testClient ? testClient : liveClient
-  const activeUrl = env === 'test' && TEST_URL ? TEST_URL : LIVE_URL
   const contentEnv = ENV_TO_CONTENT[env]
   const testAvailable = TEST_URL !== null
 
@@ -104,11 +115,10 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
     [getToken]
   )
 
-  const getAuthSecondaryClient = useCallback(async () => {
-    const secondary = env === 'live' ? testHttp : liveHttp
-    if (!secondary) return null
-    return authenticateClient(secondary)
-  }, [env, liveHttp, testHttp, authenticateClient])
+  const getAuthTestClient = useCallback(async () => {
+    if (!testHttp) return null
+    return authenticateClient(testHttp)
+  }, [testHttp, authenticateClient])
 
   const getAuthBothClients = useCallback(async () => {
     const live = await authenticateClient(liveHttp)
@@ -123,21 +133,17 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
       contentEnv,
       liveUrl: LIVE_URL,
       testUrl: TEST_URL,
-      activeUrl,
       testAvailable,
-      getAuthSecondaryClient,
+      testReactClient,
+      getAuthTestClient,
       getAuthBothClients,
     }),
-    [env, contentEnv, activeUrl, testAvailable, getAuthSecondaryClient, getAuthBothClients]
+    [env, contentEnv, testAvailable, testReactClient, getAuthTestClient, getAuthBothClients]
   )
 
   return (
     <DeploymentContext.Provider value={value}>
-      <ConvexProviderWithClerk
-        client={activeClient}
-        useAuth={useAuth}
-        key={activeUrl}
-      >
+      <ConvexProviderWithClerk client={liveClient} useAuth={useAuth}>
         {children}
       </ConvexProviderWithClerk>
     </DeploymentContext.Provider>

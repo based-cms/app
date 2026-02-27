@@ -241,3 +241,34 @@ export const syncRegistrationToken = mutation({
     await ctx.db.patch(project._id, { registrationToken })
   },
 })
+
+/**
+ * Ensure a project exists on this deployment (create if missing).
+ * Used to create "shadow" project records on the test deployment
+ * so that section_content mutations pass project existence checks.
+ * Returns the project ID (existing or newly created).
+ */
+export const ensureExists = mutation({
+  args: {
+    slug: v.string(),
+    name: v.string(),
+    primaryColor: v.optional(v.string()),
+    faviconUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, { slug, name, primaryColor, faviconUrl }) => {
+    const orgId = await requireOrgId(ctx)
+    const existing = await ctx.db
+      .query('projects')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    if (existing) return existing._id
+
+    return ctx.db.insert('projects', {
+      orgId,
+      name,
+      slug,
+      primaryColor: primaryColor ?? '#000000',
+      faviconUrl: faviconUrl ?? '',
+    })
+  },
+})
