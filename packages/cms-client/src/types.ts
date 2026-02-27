@@ -39,10 +39,8 @@ export type InferSectionItem<TFields extends FieldMap> =
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export interface CMSClientOptions {
-  /** Combined token from the CMS dashboard — contains Convex URL, org slug, and secret */
-  token: string
-  /** 'production' (default) or 'preview' */
-  env?: 'production' | 'preview'
+  /** BETTER-CMS-KEY value (bcms_test-... or bcms_live-...) */
+  key: string
 }
 
 /**

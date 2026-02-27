@@ -12,7 +12,8 @@ export default defineSchema({
     registrationToken: v.optional(v.string()), // secret used by registerSections() in client apps
   })
     .index('by_org', ['orgId'])
-    .index('by_slug', ['slug']),
+    .index('by_slug', ['slug'])
+    .index('by_token', ['registrationToken']),
 
   // Written by the client Next.js project on boot via cms.registerSections()
   // Defines what sections exist and what fields they have

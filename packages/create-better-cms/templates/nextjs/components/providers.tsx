@@ -2,9 +2,17 @@
 
 import { CMSProvider } from 'cms-client/react'
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  slug,
+  convexUrl,
+  children,
+}: {
+  slug: string
+  convexUrl: string
+  children: React.ReactNode
+}) {
   return (
-    <CMSProvider token={process.env.NEXT_PUBLIC_BETTER_CMS_TOKEN!}>
+    <CMSProvider slug={slug} convexUrl={convexUrl}>
       {children}
     </CMSProvider>
   )

@@ -2,7 +2,8 @@
 
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import { decodeToken } from './token'
+
+// ─── Context ─────────────────────────────────────────────────────────────────
 
 interface CMSContextValue {
   orgSlug: string
@@ -16,49 +17,57 @@ export function useCMSContext(): CMSContextValue {
   if (!ctx) {
     throw new Error(
       '[cms-client] useSection must be used inside <CMSProvider>. ' +
-        'Wrap your app in <CMSProvider token={...}> in a client component.'
+        'Wrap your app in <CMSProvider slug={...} convexUrl={...}> in a client component.'
     )
   }
   return ctx
 }
 
+// ─── Provider ────────────────────────────────────────────────────────────────
+
 interface CMSProviderProps {
-  /** Combined token from the CMS dashboard */
-  token: string
+  /** Project slug (BETTER-CMS-SLUG) */
+  slug: string
+  /** Convex deployment URL — decoded from BETTER-CMS-KEY */
+  convexUrl: string
   /** 'production' (default) or 'preview' */
   env?: 'production' | 'preview'
   children: ReactNode
 }
 
 /**
- * Wraps your app with the Convex provider configured for your CMS project.
- * Also provides orgSlug and env to `useSection` via React context.
+ * Wraps your app with the Convex provider and sets the CMS context.
  *
  * ```tsx
- * // components/providers.tsx
  * 'use client'
  * import { CMSProvider } from 'cms-client/react'
  *
- * export function Providers({ children }: { children: React.ReactNode }) {
+ * export function Providers({ slug, convexUrl, children }: {
+ *   slug: string
+ *   convexUrl: string
+ *   children: React.ReactNode
+ * }) {
  *   return (
- *     <CMSProvider token={process.env.NEXT_PUBLIC_BETTER_CMS_TOKEN!}>
+ *     <CMSProvider slug={slug} convexUrl={convexUrl}>
  *       {children}
  *     </CMSProvider>
  *   )
  * }
  * ```
  */
-export function CMSProvider({ token, env = 'production', children }: CMSProviderProps) {
-  const decoded = useMemo(() => decodeToken(token), [token])
-  const client = useMemo(() => new ConvexReactClient(decoded.url), [decoded.url])
-  const cmsValue = useMemo<CMSContextValue>(
-    () => ({ orgSlug: decoded.slug, env }),
-    [decoded.slug, env]
-  )
+export function CMSProvider({
+  slug,
+  convexUrl,
+  env = 'production',
+  children,
+}: CMSProviderProps) {
+  const client = useMemo(() => new ConvexReactClient(convexUrl), [convexUrl])
 
   return (
-    <CMSContext value={cmsValue}>
-      <ConvexProvider client={client}>{children}</ConvexProvider>
-    </CMSContext>
+    <ConvexProvider client={client}>
+      <CMSContext value={{ orgSlug: slug, env }}>
+        {children}
+      </CMSContext>
+    </ConvexProvider>
   )
 }

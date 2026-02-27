@@ -96,24 +96,23 @@ export const update = mutation({
 
 /**
  * Generate (or regenerate) the registration token for a project.
- * The token is a `bcms_<base64>` string containing the Convex URL, org slug,
- * and a secret key. Displayed in the CMS project page — users set it as
- * NEXT_PUBLIC_BETTER_CMS_TOKEN in their client project.
+ * Stores a 24-char random string (uppercase A-Z + digits 0-9).
+ * The CMS admin page constructs the full bcms_ key for display to users.
  */
 export const generateRegistrationToken = mutation({
-  args: {
-    projectId: v.id('projects'),
-    convexUrl: v.string(),
-  },
-  handler: async (ctx, { projectId, convexUrl }) => {
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, { projectId }) => {
     const orgId = await requireOrgId(ctx)
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) throw new Error('Project not found')
 
-    // Encode everything into a single token: bcms_<base64 JSON>
-    const key = crypto.randomUUID()
-    const payload = JSON.stringify({ v: 1, url: convexUrl, slug: project.slug, key })
-    const token = `bcms_${btoa(payload)}`
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    const bytes = new Uint8Array(24)
+    crypto.getRandomValues(bytes)
+    let token = ''
+    for (let i = 0; i < 24; i++) {
+      token += chars[bytes[i]! % chars.length]
+    }
 
     await ctx.db.patch(projectId, { registrationToken: token })
     return token

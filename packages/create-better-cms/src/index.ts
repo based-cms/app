@@ -5,32 +5,6 @@ import prompts from 'prompts'
 import pc from 'picocolors'
 
 const TEMPLATES = ['nextjs'] as const
-const TOKEN_PREFIX = 'bcms_'
-
-interface TokenPayload {
-  v: number
-  url: string
-  slug: string
-  key: string
-}
-
-function tryDecodeToken(token: string): TokenPayload | string {
-  if (!token.startsWith(TOKEN_PREFIX)) {
-    return `Token must start with "${TOKEN_PREFIX}"`
-  }
-  try {
-    const parsed = JSON.parse(atob(token.slice(TOKEN_PREFIX.length))) as TokenPayload
-    if (!parsed.url || !parsed.slug || !parsed.key) {
-      return 'Token is missing required fields (url, slug, key)'
-    }
-    if (parsed.v !== 1) {
-      return `Unsupported token version: ${String(parsed.v)}`
-    }
-    return parsed
-  } catch {
-    return 'Token is malformed — could not decode'
-  }
-}
 
 function openBrowser(url: string) {
   const cmd =
@@ -40,6 +14,15 @@ function openBrowser(url: string) {
         ? 'start'
         : 'xdg-open'
   exec(`${cmd} ${url}`)
+}
+
+function isValidUrl(value: string): boolean {
+  try {
+    new URL(value)
+    return true
+  } catch {
+    return false
+  }
 }
 
 async function main() {
@@ -100,115 +83,105 @@ async function main() {
     }
   }
 
-  // ─── Token setup ─────────────────────────────────────────────────────────────
+  // ─── Connection setup ────────────────────────────────────────────────────────
 
-  let token: string | undefined
-  const { tokenChoice } = await prompts({
+  let slug: string | undefined
+  let key: string | undefined
+
+  const { setupChoice } = await prompts({
     type: 'select',
-    name: 'tokenChoice',
+    name: 'setupChoice',
     message: 'Connect to Better CMS:',
     choices: [
       {
-        title: 'Paste token',
-        value: 'paste',
-        description: 'I have a token from the CMS dashboard',
+        title: 'Enter credentials',
+        value: 'enter',
+        description: 'I have a slug and key from the CMS dashboard',
       },
       {
         title: 'Open CMS dashboard',
         value: 'open',
-        description: 'Create a project and get a token',
+        description: 'Create a project and get credentials',
       },
       {
         title: 'Skip for now',
         value: 'skip',
-        description: "I'll add the token later",
+        description: "I'll configure .env.local later",
       },
     ],
   })
 
-  if (tokenChoice === undefined) {
+  if (setupChoice === undefined) {
     console.log(pc.red('Cancelled.'))
     process.exit(1)
   }
 
-  if (tokenChoice === 'paste') {
-    const { pastedToken } = await prompts({
-      type: 'text',
-      name: 'pastedToken',
-      message: 'Token:',
-      validate: (value: string) => {
-        if (!value.trim()) return 'Token cannot be empty'
-        const result = tryDecodeToken(value.trim())
-        if (typeof result === 'string') return result
-        return true
+  if (setupChoice === 'enter') {
+    const answers = await prompts([
+      {
+        type: 'text',
+        name: 'slug',
+        message: 'Project slug (BETTER-CMS-SLUG):',
+        validate: (v: string) => (v.trim().length > 0 ? true : 'Slug cannot be empty'),
       },
-    })
-    if (!pastedToken) {
+      {
+        type: 'text',
+        name: 'key',
+        message: 'Key (BETTER-CMS-KEY):',
+        validate: (v: string) => (v.trim().length > 0 ? true : 'Key cannot be empty'),
+      },
+    ])
+    if (!answers.slug || !answers.key) {
       console.log(pc.red('Cancelled.'))
       process.exit(1)
     }
-    token = (pastedToken as string).trim()
-    const decoded = tryDecodeToken(token) as TokenPayload
-    console.log()
-    console.log(`  ${pc.green('Token valid')}`)
-    console.log(`  ${pc.dim('Project:')} ${decoded.slug}`)
-    console.log(`  ${pc.dim('Convex:')}  ${decoded.url}`)
-  } else if (tokenChoice === 'open') {
-    // Ask for the CMS URL
+    slug = (answers.slug as string).trim()
+    key = (answers.key as string).trim()
+  } else if (setupChoice === 'open') {
     const { cmsUrl } = await prompts({
       type: 'text',
       name: 'cmsUrl',
       message: 'CMS dashboard URL:',
       initial: 'https://cms.your-domain.com',
-      validate: (value: string) => {
-        try {
-          new URL(value)
-          return true
-        } catch {
-          return 'Enter a valid URL'
-        }
-      },
+      validate: (v: string) => (isValidUrl(v) ? true : 'Enter a valid URL'),
     })
 
     if (cmsUrl) {
       console.log()
       console.log(`  ${pc.dim('Opening CMS dashboard...')}`)
       openBrowser(cmsUrl as string)
-      console.log(`  ${pc.dim('Create a project → go to Project Settings → Generate Token')}`)
+      console.log(`  ${pc.dim('Create a project → Project Settings → copy slug and key')}`)
       console.log()
 
-      // Wait for them to come back with a token
-      const { pastedToken } = await prompts({
-        type: 'text',
-        name: 'pastedToken',
-        message: 'Paste your token (or press Enter to skip):',
-      })
-      if (pastedToken) {
-        const trimmed = (pastedToken as string).trim()
-        const result = tryDecodeToken(trimmed)
-        if (typeof result === 'string') {
-          console.log(`  ${pc.yellow('Warning:')} ${result} — skipping token setup`)
-        } else {
-          token = trimmed
-          console.log()
-          console.log(`  ${pc.green('Token valid')}`)
-          console.log(`  ${pc.dim('Project:')} ${result.slug}`)
-          console.log(`  ${pc.dim('Convex:')}  ${result.url}`)
-        }
+      const answers = await prompts([
+        {
+          type: 'text',
+          name: 'slug',
+          message: 'Project slug (or Enter to skip):',
+        },
+        {
+          type: 'text',
+          name: 'key',
+          message: 'Key (or Enter to skip):',
+        },
+      ])
+      if (answers.slug && (answers.slug as string).trim()) {
+        slug = (answers.slug as string).trim()
+      }
+      if (answers.key && (answers.key as string).trim()) {
+        key = (answers.key as string).trim()
       }
     }
   }
 
   // ─── Scaffold ────────────────────────────────────────────────────────────────
 
-  // Validate template exists
   const templateDir = path.join(__dirname, '..', 'templates', templateName)
   if (!fs.existsSync(templateDir)) {
     console.log(pc.red(`Template "${templateName}" not found.`))
     process.exit(1)
   }
 
-  // Create target directory
   const targetDir = path.resolve(process.cwd(), projectName)
   if (fs.existsSync(targetDir)) {
     const { overwrite } = await prompts({
@@ -224,18 +197,14 @@ async function main() {
     fs.rmSync(targetDir, { recursive: true, force: true })
   }
 
-  // Copy template
   console.log()
   console.log(`  ${pc.green('Scaffolding')} ${pc.bold(projectName)}...`)
   fs.cpSync(templateDir, targetDir, { recursive: true })
 
-  // Process template files — replace {{PROJECTNAME}} placeholders
   processTemplateFiles(targetDir, { projectName })
-
-  // Rename .tmpl files (e.g. package.json.tmpl → package.json)
   renameTmplFiles(targetDir)
 
-  // Rename _gitignore → .gitignore (npm strips .gitignore from published packages)
+  // Rename _gitignore → .gitignore
   const gitignoreSrc = path.join(targetDir, '_gitignore')
   if (fs.existsSync(gitignoreSrc)) {
     fs.renameSync(gitignoreSrc, path.join(targetDir, '.gitignore'))
@@ -253,13 +222,13 @@ async function main() {
     console.log(`  ${pc.green('Local mode:')} cms-client → ${pc.dim(cmsClientDir)}`)
   }
 
-  // Write .env.local if token was provided
-  if (token) {
-    fs.writeFileSync(
-      path.join(targetDir, '.env.local'),
-      `NEXT_PUBLIC_BETTER_CMS_TOKEN=${token}\n`
-    )
-    console.log(`  ${pc.green('Wrote')} .env.local with token`)
+  // Write .env.local if any credentials were provided
+  if (slug || key) {
+    const lines: string[] = []
+    lines.push(`BETTER-CMS-SLUG=${slug ?? ''}`)
+    lines.push(`BETTER-CMS-KEY=${key ?? ''}`)
+    fs.writeFileSync(path.join(targetDir, '.env.local'), lines.join('\n') + '\n')
+    console.log(`  ${pc.green('Wrote')} .env.local`)
   }
 
   // ─── Next steps ──────────────────────────────────────────────────────────────
@@ -269,10 +238,10 @@ async function main() {
   console.log()
   console.log(`  ${pc.cyan('cd')} ${projectName}`)
   console.log(`  ${pc.cyan('pnpm install')}        ${pc.dim('# or npm install / yarn')}`)
-  if (!token) {
-    console.log(`  ${pc.dim('# Get your token from the CMS dashboard → Project Settings')}`)
-    console.log(`  ${pc.dim('# Add it to .env.local:')}`)
-    console.log(`  ${pc.cyan('NEXT_PUBLIC_BETTER_CMS_TOKEN=')}${pc.dim('bcms_...')}`)
+  if (!slug || !key) {
+    console.log(`  ${pc.dim('# Add to .env.local:')}`)
+    if (!slug) console.log(`  ${pc.cyan('BETTER-CMS-SLUG=')}${pc.dim('my-project')}`)
+    if (!key) console.log(`  ${pc.cyan('BETTER-CMS-KEY=')}${pc.dim('bcms_test-...')}`)
   }
   console.log(`  ${pc.cyan('pnpm dev')}`)
   console.log()

@@ -3,7 +3,8 @@
 
 export { createCMSClient } from './client'
 export { defineCMSSection } from './defineSection'
-export { decodeToken, encodeToken } from './token'
+export { parseKey, buildKey } from './token'
+export type { ParsedKey, KeyEnv } from './token'
 export { z } from './z'
 export type {
   CMSSection,
@@ -12,4 +13,3 @@ export type {
   InferSectionType,
   InferSectionItem,
 } from './types'
-export type { TokenPayload } from './token'

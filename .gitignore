@@ -42,6 +42,7 @@ pnpm-debug.log*
 
 # Test scaffolds
 my-test-app/
+my-cms-app/
 
 # Changesets
 # (keep .changeset/config.json, ignore generated changelogs)

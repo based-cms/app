@@ -83,47 +83,24 @@ export const upsert = mutation({
 
 /**
  * Public upsert — called by cms.registerSections() from a client Next.js project.
- * Auth is via registrationToken instead of Clerk (this runs server-side, not in-browser).
+ * Auth is via registrationToken (UUID) instead of Clerk.
+ * Resolves the project directly from the token via the by_token index.
  * Idempotent: safe to call on every app boot.
- *
- * The client sends the UUID `key` extracted from the bcms_ token.
- * We extract the key from the stored token to verify it matches.
  */
 export const upsertPublic = mutation({
   args: {
-    orgSlug: v.string(),
     registrationToken: v.string(),
     sectionType: v.string(),
     label: v.string(),
     fieldsSchema: v.string(),
   },
-  handler: async (ctx, { orgSlug, registrationToken, sectionType, label, fieldsSchema }) => {
-    // Resolve project by public slug
+  handler: async (ctx, { registrationToken, sectionType, label, fieldsSchema }) => {
+    // Resolve project by token
     const project = await ctx.db
       .query('projects')
-      .withIndex('by_slug', (q) => q.eq('slug', orgSlug))
+      .withIndex('by_token', (q) => q.eq('registrationToken', registrationToken))
       .unique()
-    if (!project) throw new Error(`No project with slug "${orgSlug}"`)
-
-    // Verify the registration token
-    // The stored token is bcms_<base64 JSON> — extract the key to compare
-    if (!project.registrationToken) {
-      throw new Error('Invalid registration token')
-    }
-
-    let storedKey: string
-    try {
-      const base64 = project.registrationToken.slice('bcms_'.length)
-      const parsed = JSON.parse(atob(base64)) as { key: string }
-      storedKey = parsed.key
-    } catch {
-      // Legacy: stored token might be a plain UUID from before bcms_ encoding
-      storedKey = project.registrationToken
-    }
-
-    if (storedKey !== registrationToken) {
-      throw new Error('Invalid registration token')
-    }
+    if (!project) throw new Error('Invalid registration token')
 
     const existing = await ctx.db
       .query('section_registry')

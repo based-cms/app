@@ -3,13 +3,38 @@
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { use, useState } from 'react'
+import { use, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, FileText, FolderOpen, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
+
+/**
+ * Extract the deployment name from NEXT_PUBLIC_CONVEX_URL.
+ * e.g. `https://elated-tapir-331.eu-central-1.convex.cloud` → `elated-tapir-331`
+ */
+function getDeploymentName(): string {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return '<deployment-name>'
+  try {
+    const hostname = new URL(url).hostname
+    // hostname: elated-tapir-331.eu-central-1.convex.cloud
+    // deployment name is the first segment
+    return hostname.split('.')[0] ?? '<deployment-name>'
+  } catch {
+    return '<deployment-name>'
+  }
+}
+
+/**
+ * Build a bcms_ key.
+ * Format: bcms_<test|live>-<base64(deployment-name.SECRET24)>
+ */
+function buildKey(env: 'test' | 'live', deploymentName: string, secret: string): string {
+  return `bcms_${env}-${btoa(`${deploymentName}.${secret}`)}`
+}
 
 export default function ProjectPage({
   params,
@@ -27,6 +52,18 @@ export default function ProjectPage({
   const [tokenVisible, setTokenVisible] = useState(false)
   const [generating, setGenerating] = useState(false)
 
+  const deploymentName = useMemo(() => getDeploymentName(), [])
+
+  const testKey = useMemo(() => {
+    if (!project?.registrationToken) return null
+    return buildKey('test', deploymentName, project.registrationToken)
+  }, [deploymentName, project?.registrationToken])
+
+  const liveKey = useMemo(() => {
+    if (!project?.registrationToken) return null
+    return buildKey('live', deploymentName, project.registrationToken)
+  }, [deploymentName, project?.registrationToken])
+
   if (project === undefined) {
     return <div className="h-8 w-48 animate-pulse rounded bg-muted" />
   }
@@ -38,27 +75,23 @@ export default function ProjectPage({
   async function handleGenerateToken() {
     setGenerating(true)
     try {
-      await generateToken({
-        projectId: projectId as Id<'projects'>,
-        convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
-      })
+      await generateToken({ projectId: projectId as Id<'projects'> })
       setTokenVisible(true)
-      toast.success('New token generated')
+      toast.success('New key generated')
     } catch {
-      toast.error('Failed to generate token')
+      toast.error('Failed to generate key')
     } finally {
       setGenerating(false)
     }
   }
 
-  function copyToken() {
-    if (!project?.registrationToken) return
-    void navigator.clipboard.writeText(project.registrationToken)
-    toast.success('Token copied')
+  function copyToClipboard(text: string, label: string) {
+    void navigator.clipboard.writeText(text)
+    toast.success(`${label} copied`)
   }
 
-  const maskedToken = project.registrationToken
-    ? `${project.registrationToken.slice(0, 8)}${'•'.repeat(24)}`
+  const maskedKey = testKey
+    ? `bcms_test-${'•'.repeat(20)}`
     : null
 
   return (
@@ -132,12 +165,30 @@ export default function ProjectPage({
       <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4">
         <p className="text-xs font-medium text-muted-foreground">Package setup</p>
 
-        {/* Registration token */}
+        {/* Slug */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">Registration token</p>
+            <p className="text-xs text-muted-foreground">BETTER-CMS-SLUG</p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => copyToClipboard(project.slug, 'Slug')}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+          <code className="block w-full overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
+            {project.slug}
+          </code>
+        </div>
+
+        {/* Key */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">BETTER-CMS-KEY</p>
             <div className="flex gap-1">
-              {project.registrationToken && (
+              {testKey && (
                 <>
                   <Button
                     variant="ghost"
@@ -151,14 +202,6 @@ export default function ProjectPage({
                       <Eye className="h-3 w-3" />
                     )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={copyToken}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
                 </>
               )}
               <Button
@@ -167,20 +210,47 @@ export default function ProjectPage({
                 className="h-6 w-6"
                 disabled={generating}
                 onClick={handleGenerateToken}
-                title={project.registrationToken ? 'Regenerate token' : 'Generate token'}
+                title={testKey ? 'Regenerate key' : 'Generate key'}
               >
                 <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>
 
-          {project.registrationToken ? (
-            <code className="block w-full overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
-              {tokenVisible ? project.registrationToken : maskedToken}
-            </code>
+          {testKey && liveKey ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] shrink-0">test</Badge>
+                <code className="flex-1 overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
+                  {tokenVisible ? testKey : maskedKey}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => copyToClipboard(testKey, 'Test key')}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] shrink-0">live</Badge>
+                <code className="flex-1 overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
+                  {tokenVisible ? liveKey : `bcms_live-${'•'.repeat(20)}`}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => copyToClipboard(liveKey, 'Live key')}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
           ) : (
             <p className="rounded bg-background px-3 py-2 text-xs text-muted-foreground">
-              No token yet — click ↻ to generate one
+              No key yet — click ↻ to generate one
             </p>
           )}
         </div>
@@ -191,20 +261,8 @@ export default function ProjectPage({
             Add to your client project&apos;s <code className="text-xs">.env.local</code>
           </p>
           <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
-            {`NEXT_PUBLIC_BETTER_CMS_TOKEN=<token from above>`}
-          </pre>
-        </div>
-
-        <div>
-          <p className="mb-1.5 text-xs text-muted-foreground">
-            Add to your client project&apos;s <code className="text-xs">lib/cms.ts</code>
-          </p>
-          <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
-            {`import { createCMSClient } from 'cms-client'
-
-export const cms = createCMSClient({
-  token: process.env.NEXT_PUBLIC_BETTER_CMS_TOKEN!,
-})`}
+            {`BETTER-CMS-SLUG=${project.slug}
+BETTER-CMS-KEY=${testKey ?? '<generate a key above>'}`}
           </pre>
         </div>
 

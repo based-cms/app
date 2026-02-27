@@ -1,80 +1,85 @@
-const TOKEN_PREFIX = 'bcms_'
+export type KeyEnv = 'test' | 'live';
 
-export interface TokenPayload {
-  /** Token version — currently always 1 */
-  v: 1
-  /** Convex deployment URL */
-  url: string
-  /** Organization slug */
-  slug: string
-  /** Registration secret (UUID) */
-  key: string
+export interface ParsedKey {
+	env: KeyEnv;
+	deploymentName: string;
+	secret: string;
+	convexUrl: string;
 }
 
 /**
- * Encode Convex URL, org slug, and registration key into a single token.
+ * Parse a BETTER-CMS-KEY into its parts.
  *
- * Format: `bcms_<base64 JSON>`
+ * Format: `bcms_<test|live>-<base64(deployment-name.SECRET24)>`
+ *
+ * Example:
+ *   `bcms_test-ZWxhdGVkLXRhcGlyLTMzMS5BQkMxQUJDMkFCQzNBQkM0QUJDNUFCQzY=`
+ *   → env: 'test'
+ *   → deploymentName: 'elated-tapir-331'
+ *   → secret: 'ABC1ABC2ABC3ABC4ABC5ABC6'
+ *   → convexUrl: 'https://elated-tapir-331.eu-central-1.convex.cloud'
  */
-export function encodeToken(payload: Omit<TokenPayload, 'v'>): string {
-  const json = JSON.stringify({ v: 1, ...payload })
-  const base64 = btoa(json)
-  return `${TOKEN_PREFIX}${base64}`
+export function parseKey(key: string): ParsedKey {
+	if (!key) {
+		throw new Error('[cms-client] BETTER-CMS-KEY is empty.');
+	}
+
+	const body = key.startsWith('bcms_') ? key.slice(5) : key;
+
+	// Split env from base64 payload on first hyphen
+	const sep = body.indexOf('-');
+	if (sep === -1) {
+		throw new Error(
+			'[cms-client] Invalid BETTER-CMS-KEY format. Expected: bcms_<test|live>-<base64>',
+		);
+	}
+
+	const envStr = body.slice(0, sep);
+	if (envStr !== 'test' && envStr !== 'live') {
+		throw new Error(
+			`[cms-client] Invalid BETTER-CMS-KEY env "${envStr}". Expected "test" or "live".`,
+		);
+	}
+
+	const b64 = body.slice(sep + 1);
+
+	let decoded: string;
+	try {
+		decoded = atob(b64);
+	} catch {
+		throw new Error(
+			'[cms-client] Invalid BETTER-CMS-KEY — could not base64-decode the payload.',
+		);
+	}
+
+	// Split on last dot — deployment names can contain dots (e.g. with region),
+	// but the secret (24 uppercase+digits) never does
+	const dotIdx = decoded.lastIndexOf('.');
+	if (dotIdx === -1) {
+		throw new Error('[cms-client] Invalid BETTER-CMS-KEY');
+	}
+
+	const deploymentName = decoded.slice(0, dotIdx);
+	const secret = decoded.slice(dotIdx + 1);
+
+	if (!deploymentName || !secret) {
+		throw new Error('[cms-client] Invalid BETTER-CMS-KEY');
+	}
+
+	return {
+		env: envStr,
+		deploymentName,
+		secret,
+		convexUrl: `https://${deploymentName}.eu-west-1.convex.cloud`,
+	};
 }
 
 /**
- * Decode a `bcms_` token into its component parts.
+ * Build a BETTER-CMS-KEY from its parts.
  *
- * Throws a clear error if the token is missing, malformed, or has an unknown version.
+ * Used by the CMS admin dashboard to display the key to users.
  */
-export function decodeToken(token: string): TokenPayload {
-  if (!token) {
-    throw new Error(
-      '[cms-client] Token is empty. Set NEXT_PUBLIC_BETTER_CMS_TOKEN in your .env.local.'
-    )
-  }
-
-  if (!token.startsWith(TOKEN_PREFIX)) {
-    throw new Error(
-      `[cms-client] Invalid token format — must start with "${TOKEN_PREFIX}". ` +
-        'Get your token from the CMS dashboard → Project Settings.'
-    )
-  }
-
-  const base64 = token.slice(TOKEN_PREFIX.length)
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(atob(base64))
-  } catch {
-    throw new Error(
-      '[cms-client] Failed to decode token — it may be corrupted. ' +
-        'Get a fresh token from the CMS dashboard → Project Settings.'
-    )
-  }
-
-  if (
-    typeof parsed !== 'object' ||
-    parsed === null ||
-    !('v' in parsed) ||
-    !('url' in parsed) ||
-    !('slug' in parsed) ||
-    !('key' in parsed)
-  ) {
-    throw new Error(
-      '[cms-client] Token is missing required fields. ' +
-        'Get a fresh token from the CMS dashboard → Project Settings.'
-    )
-  }
-
-  const payload = parsed as TokenPayload
-
-  if (payload.v !== 1) {
-    throw new Error(
-      `[cms-client] Token version ${String(payload.v)} is not supported. ` +
-        'Update cms-client to the latest version.'
-    )
-  }
-
-  return payload
+export function buildKey(env: KeyEnv, deploymentName: string, secret: string): string {
+	const payload = `${deploymentName}.${secret}`;
+	return `bcms_${env}-${btoa(payload)}`;
 }
