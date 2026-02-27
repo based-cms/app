@@ -19,6 +19,9 @@ export default function SectionTypePage({
   const { projectId, type } = use(params)
   const { env } = useEnv()
 
+  const project = useQuery(api.projects.get, {
+    projectId: projectId as Id<'projects'>,
+  })
   const registry = useQuery(api.sectionRegistry.getByType, {
     projectId: projectId as Id<'projects'>,
     sectionType: type,
@@ -81,6 +84,7 @@ export default function SectionTypePage({
 
       <SectionEditor
         projectId={projectId as Id<'projects'>}
+        slug={project?.slug}
         sectionType={type}
         env={env}
         fieldsSchema={fieldsSchema}

@@ -1,14 +1,16 @@
 // Field type helpers with full TypeScript inference.
 // Modifiers chain cleanly: z.string().optional().label('Bio').multiline()
 
-export type FieldTypeName = 'string' | 'number' | 'boolean' | 'image'
+export type FieldTypeName = 'string' | 'number' | 'boolean' | 'image' | 'video' | 'document'
 
 // Maps FieldTypeName → the corresponding TypeScript type
 interface FieldTypeMap {
   string: string
   number: number
   boolean: boolean
-  image: string  // image fields resolve to a string URL
+  image: string   // image fields resolve to a string URL
+  video: string   // video fields resolve to a string URL
+  document: string // document fields resolve to a string URL
 }
 
 export interface FieldDef {
@@ -17,6 +19,7 @@ export interface FieldDef {
   multiline?: boolean
   labelText?: string
   defaultValue?: unknown
+  accept?: string[] // MIME type whitelist (e.g. ['image/png', 'video/mp4'])
 }
 
 /**
@@ -57,6 +60,11 @@ export class FieldBuilder<TOutput, TOptional extends boolean = false> {
       TOptional
     >
   }
+
+  /** Restrict accepted MIME types (e.g. ['image/png', 'video/mp4']) */
+  accept(types: string[]): FieldBuilder<TOutput, TOptional> {
+    return new FieldBuilder({ ...this._def, accept: types }) as FieldBuilder<TOutput, TOptional>
+  }
 }
 
 function field<TName extends FieldTypeName>(type: TName): FieldBuilder<FieldTypeMap[TName]> {
@@ -70,6 +78,10 @@ export const z = {
   number: () => field('number'),
   /** Boolean field — renders as a toggle */
   boolean: () => field('boolean'),
-  /** Image field — renders as a file picker, resolves to a CDN URL string */
+  /** Image field — renders as a media picker, resolves to a CDN URL string */
   image: () => field('image'),
+  /** Video field — renders as a media picker, resolves to a CDN URL string */
+  video: () => field('video'),
+  /** Document field — renders as a media picker for PDFs/docs, resolves to a CDN URL string */
+  document: () => field('document'),
 } as const

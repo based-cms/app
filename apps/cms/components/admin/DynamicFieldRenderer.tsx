@@ -4,15 +4,17 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Upload } from 'lucide-react'
+import { Id } from '@/convex/_generated/dataModel'
+import { MediaPicker } from './MediaPicker'
+import { FileIcon, Film } from 'lucide-react'
 
 export interface FieldDef {
-  type: 'string' | 'number' | 'boolean' | 'image'
+  type: 'string' | 'number' | 'boolean' | 'image' | 'video' | 'document'
   optional?: boolean
   multiline?: boolean
   labelText?: string
   defaultValue?: unknown
+  accept?: string[]
 }
 
 export type FieldsSchema = Record<string, FieldDef>
@@ -22,7 +24,8 @@ interface Props {
   def: FieldDef
   value: unknown
   onChange: (value: unknown) => void
-  onImageUpload?: (fieldKey: string) => void
+  projectId?: Id<'projects'>
+  slug?: string
 }
 
 export function DynamicFieldRenderer({
@@ -30,7 +33,8 @@ export function DynamicFieldRenderer({
   def,
   value,
   onChange,
-  onImageUpload,
+  projectId,
+  slug,
 }: Props) {
   const label = def.labelText ?? fieldKey
   const id = `field-${fieldKey}`
@@ -50,7 +54,8 @@ export function DynamicFieldRenderer({
     )
   }
 
-  if (def.type === 'image') {
+  // Unified media handler for image, video, document
+  if (def.type === 'image' || def.type === 'video' || def.type === 'document') {
     const url = typeof value === 'string' ? value : ''
     return (
       <div className="space-y-1.5">
@@ -63,25 +68,37 @@ export function DynamicFieldRenderer({
             onChange={(e) => onChange(e.target.value)}
             className="font-mono text-xs"
           />
-          {onImageUpload && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => onImageUpload(fieldKey)}
-              title="Upload image"
-            >
-              <Upload className="h-4 w-4" />
-            </Button>
+          {projectId && (
+            <MediaPicker
+              projectId={projectId}
+              slug={slug}
+              fieldType={def.type}
+              accept={def.accept}
+              value={url}
+              onChange={(newUrl) => onChange(newUrl)}
+            />
           )}
         </div>
-        {url && (
+        {/* Type-appropriate preview */}
+        {url && def.type === 'image' && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={url}
             alt=""
             className="mt-2 h-24 w-24 rounded-md object-cover"
           />
+        )}
+        {url && def.type === 'video' && (
+          <div className="mt-2 flex items-center gap-2 rounded-md border bg-muted px-3 py-2">
+            <Film className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate font-mono text-xs text-muted-foreground">{url}</span>
+          </div>
+        )}
+        {url && def.type === 'document' && (
+          <div className="mt-2 flex items-center gap-2 rounded-md border bg-muted px-3 py-2">
+            <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate font-mono text-xs text-muted-foreground">{url}</span>
+          </div>
         )}
       </div>
     )

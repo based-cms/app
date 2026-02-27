@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 interface Props {
   projectId: Id<'projects'>
+  slug?: string
   sectionType: string
   env: 'production' | 'preview'
   fieldsSchema: FieldsSchema
@@ -21,6 +22,7 @@ interface Props {
 
 export function SectionEditor({
   projectId,
+  slug,
   sectionType,
   env,
   fieldsSchema,
@@ -122,6 +124,8 @@ export function SectionEditor({
                       def={def}
                       value={item[key]}
                       onChange={(val) => updateItem(index, key, val)}
+                      projectId={projectId}
+                      slug={slug}
                     />
                     {fi < fieldEntries.length - 1 && <Separator className="mt-4" />}
                   </div>
