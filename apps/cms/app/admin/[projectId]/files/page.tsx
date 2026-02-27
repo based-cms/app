@@ -15,6 +15,7 @@ import {
   Folder,
   FolderOpen,
   FolderInput,
+  Info,
   Loader2,
   Pencil,
   Plus,
@@ -23,6 +24,12 @@ import {
   Check,
   X,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -224,15 +231,23 @@ function FileCard({
           >
             <Copy className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="h-8 w-8"
-            title="Rename"
-            onClick={() => onRename(file._id, file.filename)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8"
+                  onClick={() => onRename(file._id, file.filename)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Rename display name only — URL stays the same</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button
             size="icon"
             variant="secondary"
@@ -355,6 +370,7 @@ export default function FilesPage({
   const uploaderRef = useRef<HTMLInputElement>(null)
 
   // ── Convex queries
+  const project = useQuery(api.projects.get, { projectId: pid })
   const folders = useQuery(api.folders.list, { projectId: pid, parentPath: currentPath })
   const files = useQuery(api.media.list, { projectId: pid, folder: currentPath })
   const allFolders = useQuery(api.folders.listAll, { projectId: pid })
@@ -382,6 +398,7 @@ export default function FilesPage({
           projectId: pid,
           filename: file.name,
           mimeType: file.type,
+          slug: project?.slug ?? '',
         })
         const res = await fetch(uploadUrl, {
           method: 'PUT',
@@ -406,7 +423,7 @@ export default function FilesPage({
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
-    [generateUploadUrl, createMedia, pid, currentPath]
+    [generateUploadUrl, createMedia, pid, currentPath, project?.slug]
   )
 
   // ── Folder actions
@@ -651,6 +668,10 @@ export default function FilesPage({
                       setRenameFileValue('')
                     }}
                   />
+                  <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Info className="h-3 w-3 shrink-0" />
+                    Renaming only changes the display name. The file URL stays the same.
+                  </p>
                 </div>
               ) : (
                 <FileCard
