@@ -80,13 +80,10 @@ export const generateUploadUrl = action({
     filename: v.string(),
     mimeType: v.string(),
   },
-  handler: async (ctx, { projectId, filename, mimeType }) => {
+  handler: async (_ctx, { projectId, filename }) => {
     // Namespace R2 keys by projectId to keep orgs isolated within the bucket
     const r2Key = `${projectId}/${Date.now()}-${filename}`
-    const { url } = await r2.generateUploadUrl(ctx, r2Key, {
-      expiresIn: 3600,
-      httpMetadata: { contentType: mimeType },
-    })
+    const { url } = await r2.generateUploadUrl(r2Key)
     return { uploadUrl: url, r2Key }
   },
 })

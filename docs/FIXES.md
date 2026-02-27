@@ -37,6 +37,20 @@ Both packages must be direct dependencies of `apps/cms` — they are CSS imports
 
 ---
 
+## [Phase 2] — R2 `generateUploadUrl` takes no `ctx` argument
+
+**Symptom**: `tsc --noEmit` fails with `Expected 0-1 arguments, but got 3` on `media.ts:86`.
+
+**Root cause**: The `@convex-dev/r2` R2 class method `generateUploadUrl` has the signature
+`generateUploadUrl(customKey?: string): Promise<{key, url}>`. It uses the S3Client directly
+(not Convex internals) so it requires no `ctx` and no options object. Initial implementation
+incorrectly passed `(ctx, r2Key, { expiresIn, httpMetadata })`.
+
+**Fix**: Change to `r2.generateUploadUrl(r2Key)`. Also remove unused `mimeType` arg from
+the action handler since metadata options aren't supported this way.
+
+---
+
 ## [Phase 1] — `create-next-app` creates nested `pnpm-workspace.yaml`
 
 **Symptom**: `shadcn init` fails with `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` — cannot resolve `@better-cms/tsconfig@workspace:*` from inside `apps/cms`.
