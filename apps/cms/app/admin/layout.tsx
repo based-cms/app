@@ -1,13 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
+import { UserButton } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
+import { EnvProvider } from '@/components/providers/EnvProvider'
+import { EnvToggle } from '@/components/admin/EnvToggle'
 
-/**
- * Admin layout — full auth guard.
- * proxy.ts handles the lightweight cookie check.
- * This Server Component does the real verification:
- * - Clerk session must be valid
- * - An organization must be active in the session
- */
 export default async function AdminLayout({
   children,
 }: {
@@ -15,14 +11,21 @@ export default async function AdminLayout({
 }) {
   const { userId, orgId } = await auth()
 
-  if (!userId) {
-    redirect('/sign-in')
-  }
+  if (!userId) redirect('/sign-in')
+  if (!orgId) redirect('/select-org')
 
-  if (!orgId) {
-    // User is authenticated but has no active org — redirect to org selector
-    redirect('/select-org')
-  }
-
-  return <>{children}</>
+  return (
+    <EnvProvider>
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background px-6">
+          <span className="font-semibold tracking-tight">Better CMS</span>
+          <div className="flex items-center gap-4">
+            <EnvToggle />
+            <UserButton afterSignOutUrl="/sign-in" />
+          </div>
+        </header>
+        <main className="flex-1 p-6">{children}</main>
+      </div>
+    </EnvProvider>
+  )
 }
