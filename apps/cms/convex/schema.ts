@@ -4,11 +4,12 @@ import { v } from 'convex/values'
 export default defineSchema({
   // One document per client org — stores display info and the public slug
   projects: defineTable({
-    orgId: v.string(),       // Clerk Organization ID — isolation key
+    orgId: v.string(),                         // Clerk Organization ID — isolation key
     name: v.string(),
-    slug: v.string(),        // public identifier used by cms-client package
+    slug: v.string(),                          // public identifier used by cms-client package
     primaryColor: v.string(),
     faviconUrl: v.string(),
+    registrationToken: v.optional(v.string()), // secret used by registerSections() in client apps
   })
     .index('by_org', ['orgId'])
     .index('by_slug', ['slug']),

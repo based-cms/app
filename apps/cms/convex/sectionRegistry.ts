@@ -81,6 +81,53 @@ export const upsert = mutation({
   },
 })
 
+/**
+ * Public upsert — called by cms.registerSections() from a client Next.js project.
+ * Auth is via registrationToken instead of Clerk (this runs server-side, not in-browser).
+ * Idempotent: safe to call on every app boot.
+ */
+export const upsertPublic = mutation({
+  args: {
+    orgSlug: v.string(),
+    registrationToken: v.string(),
+    sectionType: v.string(),
+    label: v.string(),
+    fieldsSchema: v.string(),
+  },
+  handler: async (ctx, { orgSlug, registrationToken, sectionType, label, fieldsSchema }) => {
+    // Resolve project by public slug
+    const project = await ctx.db
+      .query('projects')
+      .withIndex('by_slug', (q) => q.eq('slug', orgSlug))
+      .unique()
+    if (!project) throw new Error(`No project with slug "${orgSlug}"`)
+
+    // Verify the registration token
+    if (!project.registrationToken || project.registrationToken !== registrationToken) {
+      throw new Error('Invalid registration token')
+    }
+
+    const existing = await ctx.db
+      .query('section_registry')
+      .withIndex('by_project_type', (q) =>
+        q.eq('projectId', project._id).eq('sectionType', sectionType)
+      )
+      .unique()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { label, fieldsSchema })
+    } else {
+      await ctx.db.insert('section_registry', {
+        orgId: project.orgId,
+        projectId: project._id,
+        sectionType,
+        label,
+        fieldsSchema,
+      })
+    }
+  },
+})
+
 /** Remove a section type from the registry */
 export const remove = mutation({
   args: {

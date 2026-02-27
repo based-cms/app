@@ -94,6 +94,25 @@ export const update = mutation({
   },
 })
 
+/**
+ * Generate (or regenerate) the registration token for a project.
+ * The token is displayed in the CMS project page and used by cms-client
+ * to call registerSections() from the client Next.js project's server.
+ */
+export const generateRegistrationToken = mutation({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, { projectId }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db.get(projectId)
+    if (!project || project.orgId !== orgId) throw new Error('Project not found')
+
+    // crypto.randomUUID() is available in Convex's V8 runtime
+    const token = crypto.randomUUID()
+    await ctx.db.patch(projectId, { registrationToken: token })
+    return token
+  },
+})
+
 /** Delete a project and all its data */
 export const remove = mutation({
   args: { projectId: v.id('projects') },

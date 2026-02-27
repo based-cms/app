@@ -1,46 +1,75 @@
-// Field type helpers — stub for Phase 1, fully implemented in Phase 5
+// Field type helpers with full TypeScript inference.
+// Modifiers chain cleanly: z.string().optional().label('Bio').multiline()
 
-export type FieldType = 'string' | 'number' | 'boolean' | 'image'
+export type FieldTypeName = 'string' | 'number' | 'boolean' | 'image'
+
+// Maps FieldTypeName → the corresponding TypeScript type
+interface FieldTypeMap {
+  string: string
+  number: number
+  boolean: boolean
+  image: string  // image fields resolve to a string URL
+}
 
 export interface FieldDef {
-  type: FieldType
+  type: FieldTypeName
   optional?: boolean
   multiline?: boolean
   labelText?: string
   defaultValue?: unknown
 }
 
-function field(type: FieldType, def: Omit<FieldDef, 'type'> = {}): FieldBuilder {
-  return new FieldBuilder({ type, ...def })
-}
+/**
+ * Generic FieldBuilder<TOutput, TOptional>.
+ * Phantom properties _output and _optional are only used for type inference
+ * via conditional types — they are never set at runtime.
+ */
+export class FieldBuilder<TOutput, TOptional extends boolean = false> {
+  // Phantom — TypeScript reads these for inference; they don't exist at runtime
+  declare readonly _output: TOutput
+  declare readonly _optional: TOptional
 
-export class FieldBuilder {
   readonly _def: FieldDef
 
   constructor(def: FieldDef) {
     this._def = def
   }
 
-  optional(): FieldBuilder {
-    return new FieldBuilder({ ...this._def, optional: true })
+  /** Mark the field as optional — useSection will return `fieldName?: Type` */
+  optional(): FieldBuilder<TOutput, true> {
+    return new FieldBuilder({ ...this._def, optional: true }) as FieldBuilder<TOutput, true>
   }
 
-  multiline(): FieldBuilder {
-    return new FieldBuilder({ ...this._def, multiline: true })
+  /** Render as a <textarea> in the CMS form */
+  multiline(): FieldBuilder<TOutput, TOptional> {
+    return new FieldBuilder({ ...this._def, multiline: true }) as FieldBuilder<TOutput, TOptional>
   }
 
-  label(text: string): FieldBuilder {
-    return new FieldBuilder({ ...this._def, labelText: text })
+  /** Custom label shown in the CMS form */
+  label(text: string): FieldBuilder<TOutput, TOptional> {
+    return new FieldBuilder({ ...this._def, labelText: text }) as FieldBuilder<TOutput, TOptional>
   }
 
-  default(value: unknown): FieldBuilder {
-    return new FieldBuilder({ ...this._def, defaultValue: value })
+  /** Default value used when the field is empty */
+  default(value: TOutput): FieldBuilder<TOutput, TOptional> {
+    return new FieldBuilder({ ...this._def, defaultValue: value }) as FieldBuilder<
+      TOutput,
+      TOptional
+    >
   }
+}
+
+function field<TName extends FieldTypeName>(type: TName): FieldBuilder<FieldTypeMap[TName]> {
+  return new FieldBuilder<FieldTypeMap[TName]>({ type })
 }
 
 export const z = {
+  /** Text field — renders as <input type="text"> or <textarea> with .multiline() */
   string: () => field('string'),
+  /** Number field — renders as <input type="number"> */
   number: () => field('number'),
+  /** Boolean field — renders as a toggle */
   boolean: () => field('boolean'),
+  /** Image field — renders as a file picker, resolves to a CDN URL string */
   image: () => field('image'),
-}
+} as const

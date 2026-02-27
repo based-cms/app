@@ -1,4 +1,4 @@
-// Server-side exports — stub for Phase 1, fully implemented in Phase 5
-// These run in Next.js Server Components / Server Actions
+// Server-side exports — safe to use in Next.js Server Components and Server Actions
+// Do NOT import this in Client Components ('use client')
 
 export { registerSections } from './registerSections'

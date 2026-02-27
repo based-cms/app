@@ -1,15 +1,58 @@
-// Stub for Phase 1 — fully implemented in Phase 5
+import { registerSections as _registerSections } from './server/registerSections'
+import { useSection as _useSection } from './hooks/useSection'
 import type { CMSClient, CMSClientOptions, CMSSection, InferSectionType } from './types'
 
-export function createCMSClient(_options: CMSClientOptions): CMSClient {
+/**
+ * Create a CMS client for a specific project.
+ *
+ * ```ts
+ * // lib/cms.ts
+ * import { createCMSClient } from 'cms-client'
+ *
+ * export const cms = createCMSClient({
+ *   convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
+ *   orgSlug: 'your-project-slug',
+ *   registrationToken: process.env.BETTER_CMS_TOKEN,  // server-side only
+ * })
+ * ```
+ */
+export function createCMSClient(options: CMSClientOptions): CMSClient {
   return {
-    async registerSections(_sections: CMSSection[]) {
-      // TODO Phase 5: call Convex mutation to upsert section_registry
-      throw new Error('Not implemented yet — coming in Phase 5')
+    /**
+     * Upsert section definitions — call in Server Components / Server Actions on boot.
+     * Idempotent. Requires `registrationToken` to be set in options.
+     *
+     * ```ts
+     * // app/layout.tsx — Server Component
+     * await cms.registerSections([teamSection, faqSection])
+     * ```
+     */
+    async registerSections(sections: CMSSection[]) {
+      await _registerSections(sections, {
+        convexUrl: options.convexUrl,
+        orgSlug: options.orgSlug,
+        ...(options.registrationToken !== undefined
+          ? { registrationToken: options.registrationToken }
+          : {}),
+      })
     },
-    useSection<T extends CMSSection>(_section: T): InferSectionType<T>[] | undefined {
-      // TODO Phase 5: useQuery from Convex with orgSlug + sectionType
-      throw new Error('Not implemented yet — coming in Phase 5')
+
+    /**
+     * React hook — returns realtime typed content for a section.
+     * Returns `undefined` while loading; `[]` if no content yet.
+     *
+     * ```tsx
+     * // app/team/page.tsx — Client Component
+     * const team = cms.useSection(teamSection)
+     * // → { name: string; role: string; bio?: string; image: string }[] | undefined
+     * ```
+     */
+    useSection<T extends CMSSection>(section: T): InferSectionType<T>[] | undefined {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      return _useSection(section, {
+        orgSlug: options.orgSlug,
+        ...(options.env !== undefined ? { env: options.env } : {}),
+      })
     },
   }
 }

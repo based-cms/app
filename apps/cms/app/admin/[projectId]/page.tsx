@@ -1,14 +1,15 @@
 'use client'
 
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { use } from 'react'
+import { use, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, FolderOpen } from 'lucide-react'
+import { ArrowLeft, FileText, FolderOpen, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function ProjectPage({
   params,
@@ -22,6 +23,9 @@ export default function ProjectPage({
   const sections = useQuery(api.sectionRegistry.list, {
     projectId: projectId as Id<'projects'>,
   })
+  const generateToken = useMutation(api.projects.generateRegistrationToken)
+  const [tokenVisible, setTokenVisible] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   if (project === undefined) {
     return <div className="h-8 w-48 animate-pulse rounded bg-muted" />
@@ -30,6 +34,29 @@ export default function ProjectPage({
   if (!project) {
     return <p className="text-sm text-muted-foreground">Project not found.</p>
   }
+
+  async function handleGenerateToken() {
+    setGenerating(true)
+    try {
+      await generateToken({ projectId: projectId as Id<'projects'> })
+      setTokenVisible(true)
+      toast.success('New token generated')
+    } catch {
+      toast.error('Failed to generate token')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  function copyToken() {
+    if (!project?.registrationToken) return
+    void navigator.clipboard.writeText(project.registrationToken)
+    toast.success('Token copied')
+  }
+
+  const maskedToken = project.registrationToken
+    ? `${project.registrationToken.slice(0, 8)}${'•'.repeat(24)}`
+    : null
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -98,22 +125,84 @@ export default function ProjectPage({
         </Link>
       </div>
 
-      <div className="mt-6 rounded-lg border bg-muted/30 p-4">
+      {/* Package setup */}
+      <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4">
         <p className="text-xs font-medium text-muted-foreground">Package setup</p>
-        <pre className="mt-2 overflow-x-auto rounded bg-background p-3 text-xs">
-          {`import { createCMSClient } from 'cms-client'
+
+        {/* Registration token */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Registration token</p>
+            <div className="flex gap-1">
+              {project.registrationToken && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setTokenVisible((v) => !v)}
+                  >
+                    {tokenVisible ? (
+                      <EyeOff className="h-3 w-3" />
+                    ) : (
+                      <Eye className="h-3 w-3" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={copyToken}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={generating}
+                onClick={handleGenerateToken}
+                title={project.registrationToken ? 'Regenerate token' : 'Generate token'}
+              >
+                <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {project.registrationToken ? (
+            <code className="block w-full overflow-hidden rounded bg-background px-3 py-2 font-mono text-xs">
+              {tokenVisible ? project.registrationToken : maskedToken}
+            </code>
+          ) : (
+            <p className="rounded bg-background px-3 py-2 text-xs text-muted-foreground">
+              No token yet — click ↻ to generate one
+            </p>
+          )}
+        </div>
+
+        {/* Code snippet */}
+        <div>
+          <p className="mb-1.5 text-xs text-muted-foreground">
+            Add to your client project&apos;s <code className="text-xs">lib/cms.ts</code>
+          </p>
+          <pre className="overflow-x-auto rounded bg-background p-3 text-xs">
+            {`import { createCMSClient } from 'cms-client'
 
 export const cms = createCMSClient({
   convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
   orgSlug: '${project.slug}',
+  registrationToken: process.env.BETTER_CMS_TOKEN,
 })`}
-        </pre>
-      </div>
+          </pre>
+        </div>
 
-      <div className="mt-4 flex justify-end">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/admin/${projectId}/settings`}>Settings</Link>
-        </Button>
+        <p className="text-xs text-muted-foreground">
+          Set <code className="text-xs">BETTER_CMS_TOKEN</code> in your client project&apos;s{' '}
+          <code className="text-xs">.env.local</code> — keep it server-side only (no{' '}
+          <code className="text-xs">NEXT_PUBLIC_</code> prefix).
+        </p>
       </div>
     </div>
   )
