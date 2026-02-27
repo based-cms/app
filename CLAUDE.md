@@ -241,25 +241,21 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 - [x] Phase 1 — Turborepo monorepo scaffold + workspace config ✅
 - [x] Phase 2 — Convex schema + R2 component + Polar component (schema only) ✅
 - [x] Phase 3 — Clerk setup + proxy.ts ✅
-- [ ] Phase 4 — CMS admin UI (dynamic forms, env toggle, media)
+- [x] Phase 4 — CMS admin UI (dynamic forms, env toggle, media) ✅
 - [ ] Phase 5 — NPM package (defineCMSSection, z, useSection + full type inference)
 - [ ] Phase 6 — Final pass (all docs complete and accurate)
 
 ---
 
-## Exact Next Steps (Phase 4)
+## Exact Next Steps (Phase 5)
 
-**Before starting:** Set up the Clerk → Convex JWT template (see docs/SETUP.md → "Configure Convex JWT Template"). Without this, all auth will fail at runtime.
-
-1. `app/admin/page.tsx` — project list for current org
-2. `app/admin/[projectId]/page.tsx` — project dashboard with env toggle
-3. `app/admin/[projectId]/content/page.tsx` — list registered sections
-4. `app/admin/[projectId]/content/[type]/page.tsx` — dynamic form editor (inline edit, auto-save)
-5. `app/admin/[projectId]/media/page.tsx` — R2 upload + media library
-6. `components/admin/EnvToggle.tsx` — environment context, always visible in header
-7. `components/admin/DynamicFieldRenderer.tsx` — renders form fields from fieldsSchema JSON
-8. `components/admin/SectionEditor.tsx` — list + edit items for a section
-9. `components/admin/MediaUploader.tsx` — R2 presigned upload flow
+1. Implement full type inference in `packages/cms-client/src/z.ts`
+2. Implement `defineCMSSection` with proper generic types in `defineSection.ts`
+3. Implement `createCMSClient` — `registerSections` (Server Action) + `useSection` (hook)
+4. Wire `useSection` to `api.sectionContent.getPublic` via Convex `useQuery`
+5. Wire `registerSections` to `api.sectionRegistry.upsert` via Convex HTTP action
+6. Build + type-check the package, verify inferred types are correct
+7. Write a usage test in a scratch file to confirm end-to-end types work
 
 ---
 
