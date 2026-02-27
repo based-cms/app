@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
-import { Id } from '@/convex/_generated/dataModel'
 import { UserButton, useOrganization, useOrganizationList } from '@clerk/nextjs'
 import { EnvToggle } from './EnvToggle'
 import {
@@ -42,16 +41,16 @@ export function AdminNav() {
   const projectId = segments.length >= 3 && segments[2] ? segments[2] : null
 
   // Skip Convex queries until the Clerk→Convex auth handshake completes
-  const project = useQuery(
-    api.projects.get,
-    projectId && isAuthenticated
-      ? { projectId: projectId as Id<'projects'> }
-      : 'skip'
-  )
   const projects = useQuery(
     api.projects.list,
     isAuthenticated ? {} : 'skip'
   )
+
+  // Derive current project from the list — avoids a separate query and
+  // prevents ArgumentValidationError if the URL contains an invalid ID
+  const project = projectId
+    ? (projects ?? []).find((p) => p._id === projectId) ?? null
+    : null
 
   // Active tab
   const basePath = projectId ? `/admin/${projectId}` : null

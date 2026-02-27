@@ -7,8 +7,9 @@
 
 ## Project Purpose
 
-A two-part system: (1) a central multi-tenant CMS deployed once to Vercel, serving all client
-organizations from a single Next.js 16 + Convex deployment; and (2) an NPM package
+A two-part system: (1) a central multi-tenant CMS deployed to Vercel, serving all client
+organizations from a shared Next.js deployment with live content in Convex (and optional test
+deployment support for admin content workflows); and (2) an NPM package
 (`packages/cms-client`) that client Next.js 16 projects install to define their own content
 sections and receive realtime, fully-typed data — no REST API, no manual schema duplication.
 
@@ -57,7 +58,8 @@ based-cms/
 │           └── admin/
 │               └── [projectId]/
 │                   ├── content/[type]/
-│                   └── media/
+│                   ├── files/
+│                   └── media/                ← legacy redirect to /files
 └── packages/
     ├── cms-client/
     │   ├── src/
@@ -66,7 +68,7 @@ based-cms/
     │   │   ├── token.ts             ← encodeToken / decodeToken (bcms_ format)
     │   │   ├── provider.tsx         ← <CMSProvider> wraps ConvexProvider
     │   │   ├── defineSection.ts     ← defineCMSSection + types
-    │   │   ├── z.ts                 ← z.string() / z.image() etc
+    │   │   ├── z.ts                 ← z.string() / z.image() / z.video() / z.document()
     │   │   ├── hooks/useSection.ts  ← realtime hook, fully typed
     │   │   └── server/registerSections.ts
     │   ├── tsup.config.ts
@@ -94,7 +96,8 @@ The key is **not** `NEXT_PUBLIC_` — it's server-side only. The slug is passed 
 
 ### proxy.ts — NOT middleware.ts
 Next.js 16 deprecated `middleware.ts`. Use `proxy.ts` with a named export `proxy` (not
-`middleware`). Lightweight session cookie check only — full auth happens in Server Components.
+`middleware`). Use Clerk's `clerkMiddleware()` + `auth.protect()` for route gating; keep business
+logic and org authorization in Server Components and Convex functions.
 
 ### No REST API
 Client Next.js projects connect directly to Convex. Data flows via Convex subscriptions.
@@ -106,8 +109,9 @@ present on every Convex table row. All mutations must verify `orgId` from the se
 
 ### Dual Environment Model
 `section_content` has an `env: "production" | "preview"` field. The CMS header shows an
-**Environment Toggle**. This is a data-level concept within one Convex deployment — not
-separate projects. The `section_registry` table is environment-agnostic (schema, not data).
+**Environment Toggle**. The content environment (`production`/`preview`) is a data-level concept.
+In current admin flows, content can also be edited against an optional test Convex deployment
+(`NEXT_PUBLIC_CONVEX_TEST_URL`) while keeping `section_registry` environment-agnostic.
 
 ### section_registry vs section_content
 These are separate tables intentionally. `section_registry` is written by the client NPM
@@ -138,7 +142,8 @@ No billing UI is built yet. See `docs/DECISIONS.md` for the `TODO: Polar UI` not
   runtime by both the CMS (to render forms) and the client package (for type inference context).
 - **Type inference in cms-client**: The `defineCMSSection` function uses TypeScript conditional
   types and mapped types to infer the return type of `useSection` from the `fields` object.
-  `z.image()` resolves to `string`; `z.string().optional()` resolves to `string | undefined`.
+  Media helpers (`z.image()`, `z.video()`, `z.document()`) resolve to `string` URLs; `z.string().optional()`
+  resolves to `string | undefined`.
 - **noUncheckedIndexedAccess**: Enabled in strict tsconfig. Array index access returns
   `T | undefined`. Handle explicitly — don't suppress with `!`.
 - **Turbopack**: `next dev --turbopack` is default for Next.js 16. Do not revert to webpack.

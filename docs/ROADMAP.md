@@ -54,9 +54,9 @@
 
 - [ ] **Clearer Live/Test environment separation in the UI**
       — Make the environment toggle more visually prominent (color coding, banner, etc.).
-      — Consider separate Convex deployments for preview vs. production instead of a single
-      deployment with an `env` data field. This is a larger architectural decision — evaluate
-      trade-offs before committing.
+      — Current code already supports optional live/test deployment switching for content flows.
+      Next step is hardening UX and guardrails (clear banners, safer migration states, fewer
+      accidental cross-environment edits).
 
 - [ ] **Self-service org onboarding** (see `TODO.md` #5)
       — `/onboarding` flow for new users: name workspace, create first project, copy env vars.

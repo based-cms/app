@@ -4,7 +4,7 @@ import { useDeployment } from '@/components/providers/DeploymentProvider'
 import { cn } from '@/lib/utils'
 
 export function EnvToggle() {
-  const { env, setEnv, testAvailable } = useDeployment()
+  const { env, setEnv } = useDeployment()
 
   return (
     <div
@@ -34,10 +34,8 @@ export function EnvToggle() {
       </button>
       <button
         onClick={() => setEnv('test')}
-        disabled={!testAvailable}
         className={cn(
           'flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium transition-colors',
-          !testAvailable && 'cursor-not-allowed opacity-40',
           env === 'test'
             ? 'bg-amber-500/20 text-amber-700 shadow-sm dark:text-amber-300'
             : 'text-muted-foreground hover:text-foreground'

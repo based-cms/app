@@ -10,6 +10,9 @@
 > **Last updated**: 2026-02-27
 > **Git**: Commit after every discrete task — not just phase boundaries. See CLAUDE.md for convention.
 > **Status**: Pre-implementation — planning complete, no code written yet.
+> **Historical note (2026-02-27 reconciliation)**: this document is retained as the original build
+> plan. It includes targeted factual corrections where current implementation would otherwise be
+> misrepresented.
 
 ---
 
@@ -43,9 +46,10 @@
 │  │  Vercel — 1 deployment  │    │                              │   │
 │  │  All clients, all orgs  │    │  createCMSClient(...)        │   │
 │  │                         │    │  defineCMSSection(...)       │   │
-│  │  Clerk Auth (Org-scoped)│    │  z.string() / z.image() ... │   │
-│  │  /admin/** → guarded    │    │  cms.registerSections(...)  │   │
-│  │  /api/... → guarded     │    │  cms.useSection(section)     │   │
+│  │  Clerk Auth (Org-scoped)│    │  z.string()/z.image()/      │   │
+│  │  /admin/** → guarded    │    │  z.video()/z.document() ... │   │
+│  │  /api/... → guarded     │    │  cms.registerSections(...)  │   │
+│  │                         │    │  cms.useSection(section)     │   │
 │  └────────────┬────────────┘    └──────────────┬───────────────┘   │
 │               │                                │                   │
 │               └────────────┬───────────────────┘                   │
@@ -75,9 +79,8 @@
 universal isolation key on every Convex table. Public reads use `orgSlug` (no auth required).
 
 **Dual environment model**: `section_content` has an `env` field (`"production"` | `"preview"`).
-The CMS admin UI exposes a toggle per-project. This is a data-level concept within a single
-Convex deployment — not separate Convex projects. This keeps billing simple and queries
-straightforward.
+The CMS admin UI exposes a toggle per-project. This remains a data-level concept; current admin
+flows may also target an optional test deployment while preserving the same `env` semantics.
 
 ---
 
@@ -570,7 +573,7 @@ export default defineSchema({
     // Serialized JSON of field definitions — the "schema" for a section.
     // Shape: Array<{ name: string; type: FieldType; label?: string; optional?: boolean;
     //               multiline?: boolean; default?: unknown }>
-    // FieldType: "string" | "number" | "boolean" | "image"
+    // FieldType: "string" | "number" | "boolean" | "image" | "video" | "document"
     fieldsSchema: v.string(),
   })
     .index('by_org', ['orgId'])
@@ -582,8 +585,8 @@ export default defineSchema({
     projectId: v.id('projects'),
     sectionType: v.string(),
     env: v.union(v.literal('production'), v.literal('preview')),
-    // items is a JSON array of records. Shape is validated against fieldsSchema at write time.
-    items: v.string(),
+    // items is a native Convex array of records. Shape is validated against fieldsSchema at write time.
+    items: v.array(v.any()),
   })
     .index('by_org', ['orgId'])
     .index('by_project_type_env', ['orgId', 'projectId', 'sectionType', 'env']),
@@ -603,11 +606,10 @@ export default defineSchema({
 });
 ```
 
-**Rationale for `fieldsSchema: v.string()` and `items: v.string()`**:
-Storing as serialized JSON strings rather than Convex's `v.any()` or nested validators gives
-full schema flexibility without requiring Convex schema migrations when section types change.
-Type safety is enforced at the application layer (in the CMS editor and in `cms-client`'s
-type inference).
+**Rationale for `fieldsSchema: v.string()` and `items: v.array(v.any())`**:
+`fieldsSchema` remains serialized JSON for schema flexibility. `items` is stored as a native
+array so reads/writes do not require string serialization at every boundary. Type safety still
+comes from application-layer validation in the CMS editor and `cms-client` type inference.
 
 **Acceptance criteria**:
 - `npx convex dev` pushes schema without errors
@@ -705,16 +707,16 @@ export const remove = mutation({ ... }); // requireOrgId
 **Gotchas for Phase 2**:
 - `v.id('projects')` is a strong Convex ID — do NOT store as a plain string in `section_registry`
   or `section_content`. This ensures referential integrity at the database level.
-- `fieldsSchema` and `items` stored as JSON strings means you MUST validate them with
-  `JSON.parse` / `JSON.stringify` at every read/write boundary. Never assume they are valid JSON.
+- `fieldsSchema` is stored as a JSON string and must be parsed defensively with try/catch.
+  `items` is a native Convex array and should be treated as structured data, not serialized JSON.
 - The Polar component registers its own tables in the schema. Do NOT create tables that conflict
   with Polar's internal table names. Check `@convex-dev/polar/convex.config` source before naming.
 - R2 does NOT use Convex native file storage. Do not use `ctx.storage` anywhere.
   All file operations go through the R2 component's `r2.generateUploadUrl(ctx, ...)` and
   `r2.delete(ctx, ...)` APIs.
 - The `env` field in `section_content` is a data-level concept stored in the database.
-  There is only ONE Convex deployment. "Preview" vs "production" content is distinguished by
-  this field, not by Convex deployment environments.
+  "Preview" vs "production" is distinguished by this field. Current admin workflows can
+  additionally use an optional test deployment target for content operations.
 
 ---
 
@@ -998,7 +1000,9 @@ reference it directly from the `apps/cms` workspace via the pnpm workspace link.
 - `multiline` string fields render as textarea
 - Number fields with `default` pre-fill the default value for new items
 
-#### 4.5 `/admin/[projectId]/media` — Media management
+#### 4.5 `/admin/[projectId]/files` — Media management
+
+> Note: `/admin/[projectId]/media` is kept as a backward-compatible redirect to `/files`.
 
 **Architecture**:
 1. List all `media` records for the project (query by `orgId + projectId`)
@@ -1528,18 +1532,17 @@ routing layer. The hard constraint to keep it lightweight means: no Convex queri
 auth checks, no business logic. Org-level authorization lives in Convex mutations via
 `requireOrgId` and in Server Component layouts via `auth()`.
 
-### Single Convex deployment, `env` field for content environments
-Rather than provisioning separate Convex projects per client (which would require separate
-deploy keys, billing, and operational overhead), a single Convex deployment serves all clients.
-The `env` field in `section_content` is a first-class data concept, not an infrastructure
-concept. This simplifies operations dramatically while maintaining the preview/production
-content separation that CMS clients expect.
+### `env` field as content model, with optional test deployment target
+The `env` field in `section_content` remains a first-class content concept (`production` /
+`preview`). In current implementation, admin content workflows can optionally target a test
+deployment in addition to live. This keeps the content model stable while allowing safer
+authoring/migration workflows.
 
-### `fieldsSchema` and `items` stored as JSON strings
-Using `v.string()` for these fields rather than Convex's nested validator types (`v.array(v.object(...))`) keeps the Convex schema stable even as section definitions evolve. Field shape
-validation is the responsibility of the application layer — the CMS editor validates on write,
-and `cms-client` validates on read. This avoids frequent schema migrations for what is
-essentially a schema-on-read content store.
+### `fieldsSchema` as JSON string, `items` as native array
+`fieldsSchema` uses `v.string()` to preserve schema flexibility as section definitions evolve.
+`items` uses `v.array(v.any())`, which keeps content data structured in Convex without
+round-tripping JSON strings at every read/write boundary. Validation responsibilities still
+live in the application layer (CMS editor and `cms-client`).
 
 ### `section_registry` and `section_content` as separate tables
 Separating schema (registry) from data (content) means:

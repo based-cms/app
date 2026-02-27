@@ -263,6 +263,8 @@ Returns a `CMSSection` object. The return type of `useSection` is inferred from 
 | `z.number().default(0)` | `number` | Number input with default |
 | `z.boolean()` | `boolean` | Toggle/checkbox |
 | `z.image()` | `string` | Image upload → R2 URL |
+| `z.video()` | `string` | Video file picker → R2 URL |
+| `z.document()` | `string` | Document file picker → R2 URL |
 
 Modifiers can be chained: `z.string().optional().label('Bio').multiline()`
 

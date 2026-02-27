@@ -17,7 +17,7 @@ export interface ParsedKey {
  *   → env: 'test'
  *   → deploymentName: 'elated-tapir-331'
  *   → secret: 'ABC1ABC2ABC3ABC4ABC5ABC6'
- *   → convexUrl: 'https://elated-tapir-331.eu-central-1.convex.cloud'
+ *   → convexUrl: 'https://elated-tapir-331.eu-west-1.convex.cloud'
  */
 export function parseKey(key: string): ParsedKey {
 	if (!key) {

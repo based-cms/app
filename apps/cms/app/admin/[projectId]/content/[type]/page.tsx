@@ -13,23 +13,23 @@ import type { FieldsSchema } from '@/components/admin/DynamicFieldRenderer'
  * Inner content area — rendered inside ContentDeploymentGate.
  * When env=test, the nearest ConvexProvider points to the test deployment,
  * so useQuery and useMutation here hit the test database.
+ *
+ * Resolves the project by slug (not ID) so it works across deployments —
+ * each deployment has its own auto-generated IDs but shares the same slug.
  */
 function ContentArea({
-  projectId,
+  slug,
   sectionType,
   registry,
 }: {
-  projectId: Id<'projects'>
+  slug: string
   sectionType: string
   registry: { label: string; fieldsSchema: string }
 }) {
   const { contentEnv } = useDeployment()
 
-  const content = useQuery(api.sectionContent.get, {
-    projectId,
-    sectionType,
-    env: contentEnv,
-  })
+  // Resolve the project from the CURRENT deployment (live or test)
+  const project = useQuery(api.projects.getBySlug, { slug })
 
   let fieldsSchema: FieldsSchema = {}
   try {
@@ -41,6 +41,53 @@ function ContentArea({
       </p>
     )
   }
+
+  // Loading — project not resolved yet (shadow may be getting created)
+  if (project === undefined) {
+    return (
+      <div className="space-y-3">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-32 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+    )
+  }
+
+  if (!project) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Project not found on this deployment. Try switching back to Live.
+      </p>
+    )
+  }
+
+  return (
+    <ContentAreaInner
+      projectId={project._id}
+      sectionType={sectionType}
+      contentEnv={contentEnv}
+      fieldsSchema={fieldsSchema}
+    />
+  )
+}
+
+/** Fetches content once we have the deployment-specific projectId. */
+function ContentAreaInner({
+  projectId,
+  sectionType,
+  contentEnv,
+  fieldsSchema,
+}: {
+  projectId: Id<'projects'>
+  sectionType: string
+  contentEnv: 'production' | 'preview'
+  fieldsSchema: FieldsSchema
+}) {
+  const content = useQuery(api.sectionContent.get, {
+    projectId,
+    sectionType,
+    env: contentEnv,
+  })
 
   if (content === undefined) {
     return (
@@ -120,7 +167,7 @@ export default function SectionTypePage({
 
       <ContentDeploymentGate project={project}>
         <ContentArea
-          projectId={pid}
+          slug={project.slug}
           sectionType={type}
           registry={registry}
         />

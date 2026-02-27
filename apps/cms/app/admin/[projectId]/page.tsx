@@ -23,6 +23,9 @@ export default function ProjectPage({
     projectId: projectId as Id<'projects'>,
   })
   const { env, setEnv, testAvailable } = useDeployment()
+  const testLabel = testAvailable
+    ? 'Separate test deployment'
+    : 'Preview content in same deployment'
 
   if (project === undefined) {
     return (
@@ -88,16 +91,12 @@ export default function ProjectPage({
 
           {/* Test */}
           <button
-            onClick={() => testAvailable && setEnv('test')}
-            disabled={!testAvailable}
+            onClick={() => setEnv('test')}
             className={cn(
               'group flex flex-col rounded-xl border p-5 text-left transition-all',
-              !testAvailable && 'cursor-not-allowed opacity-50',
               env === 'test'
                 ? 'border-amber-500/30 bg-amber-500/[0.03] ring-1 ring-amber-500/20'
-                : testAvailable
-                  ? 'hover:border-foreground/15 hover:bg-muted/30'
-                  : ''
+                : 'hover:border-foreground/15 hover:bg-muted/30'
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -118,19 +117,9 @@ export default function ProjectPage({
                   Active
                 </Badge>
               )}
-              {!testAvailable && (
-                <Badge
-                  variant="outline"
-                  className="ml-auto text-[10px] text-muted-foreground"
-                >
-                  Not configured
-                </Badge>
-              )}
             </div>
             <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
-              {testAvailable
-                ? 'Development content for testing'
-                : 'Set NEXT_PUBLIC_CONVEX_TEST_URL to enable'}
+              {testLabel}
             </p>
           </button>
         </div>

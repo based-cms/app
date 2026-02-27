@@ -13,9 +13,10 @@
 `proxy` export (not a default export named `middleware`). Using the old pattern causes a
 deprecation warning and may break in a future Next.js release.
 
-**Constraint**: `proxy.ts` does lightweight work only — a session cookie existence check. No JWT
-verification, no database calls, no org membership checks. All of that goes in Server Components
-and Server Actions where we have full async context and the Clerk `auth()` helper.
+**Constraint**: `proxy.ts` does lightweight work only — Clerk route protection via
+`clerkMiddleware()`/`auth.protect()`, but no database calls, no org membership checks, and no
+business logic. Org-level authorization lives in Server Components, Server Actions, and Convex
+functions where we have full async context and Clerk `auth()`.
 
 ---
 
@@ -206,19 +207,20 @@ Project owners can regenerate the key at any time from the CMS dashboard to revo
 
 ---
 
-## Environment Toggle as Data Field (Not Separate Deployments)
+## Environment Toggle as Data Field (With Optional Test Deployment)
 
-**Decision**: The `production`/`preview` environment distinction is a field on `section_content`,
-not separate Convex projects or deployments.
+**Decision**: The `production`/`preview` distinction is modeled as `section_content.env`.
+Current admin tooling can additionally target an optional test Convex deployment for content
+editing, while keeping the same env semantics in each deployment.
 
 **Why**:
-- Simpler billing (one Convex project)
-- Easier queries (no cross-deployment data fetching)
-- The toggle is a UX feature for content editors, not an infrastructure concern
-- `section_registry` is shared between envs — only content differs
+- `env` remains a clear content-model primitive (`production` vs `preview`)
+- `section_registry` stays shared within a deployment — only content differs by env
+- Optional test deployment support enables safer editing/migration workflows
+- The client package API remains stable (`CMSProvider` + `useSection`)
 
-**Alternative considered**: Separate Convex datasets per env. Rejected because it would require
-the client package to know both Convex URLs and switch between them, complicating the API.
+**Operational note**: if no test deployment URL is configured, the system behaves as a
+single-deployment setup.
 
 ---
 

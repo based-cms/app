@@ -23,6 +23,7 @@
 ```bash
 # Convex
 NEXT_PUBLIC_CONVEX_URL=https://<your-deployment>.convex.cloud
+NEXT_PUBLIC_CONVEX_TEST_URL=https://<your-test-deployment>.convex.cloud  # optional
 CONVEX_DEPLOYMENT=<your-deployment-name>
 
 # Clerk
@@ -32,6 +33,9 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/admin
 ```
+
+`NEXT_PUBLIC_CONVEX_TEST_URL` enables the admin live/test deployment switcher for content
+workflows. If omitted, the CMS runs in single-deployment mode.
 
 ### Convex Dashboard Environment Variables
 

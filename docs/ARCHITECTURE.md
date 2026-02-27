@@ -8,8 +8,10 @@
 
 Based CMS is a two-part system:
 
-1. **`apps/cms`** — a central multi-tenant CMS deployed once to Vercel. All clients share this
-   single deployment. Auth and data isolation are handled via Clerk Organizations + Convex `orgId`.
+1. **`apps/cms`** — a central multi-tenant CMS deployed to Vercel. All clients share this app.
+   Auth and data isolation are handled via Clerk Organizations + Convex `orgId`. The admin UI
+   can target live content by default and optionally switch content editing to a test Convex
+   deployment when configured.
 
 2. **`packages/cms-client`** — an NPM package installed by client Next.js 16 projects. It
    connects directly to Convex (no REST layer), lets clients define their own content sections,
@@ -26,10 +28,11 @@ Based CMS is a two-part system:
 │  ┌─────────────────────────┐    ┌──────────────────────────────┐   │
 │  │      apps/cms           │    │    packages/cms-client       │   │
 │  │  Next.js 16 App Router  │    │    NPM package (tsup)        │   │
-│  │  Vercel — 1 deployment  │    │                              │   │
+│  │  Vercel app (shared)    │    │                              │   │
 │  │                         │    │  createCMSClient(...)        │   │
 │  │  Clerk Auth (Org-scoped)│    │  defineCMSSection(...)       │   │
-│  │  /admin/** → guarded    │    │  z.string() / z.image()...   │   │
+│  │  /admin/** → guarded    │    │  z.string()/z.image()/        │   │
+│  │                         │    │  z.video()/z.document()...    │   │
 │  │                         │    │  cms.registerSections(...)   │   │
 │  │                         │    │  useSection(section)         │   │
 │  └────────────┬────────────┘    └──────────────┬───────────────┘   │
@@ -38,7 +41,8 @@ Based CMS is a two-part system:
 │                              │                                     │
 │                       ┌──────▼──────┐                              │
 │                       │   Convex    │                              │
-│                       │  1 project  │                              │
+│                       │  live +     │                              │
+│                       │  opt. test  │                              │
 │                       │             │                              │
 │                       │  projects   │                              │
 │                       │  section_   │                              │
@@ -91,7 +95,16 @@ Each `section_content` document has `env: "production" | "preview"`.
 - The toggle sets `targetEnv` in client state (React context or URL param)
 - All reads and writes go through the selected `env` value
 - `section_registry` is **environment-agnostic** — schema definitions apply to both envs
-- This is a data-level concept within **one Convex deployment** — not separate projects
+- This is a data-level concept; each deployment still stores `production` and `preview` content
+- Admin can optionally switch content operations between live and test deployments
+
+### Deployment Targeting
+
+- The base admin provider uses the live Convex deployment.
+- If `NEXT_PUBLIC_CONVEX_TEST_URL` is configured and the editor selects `test`, content pages
+  are wrapped with a test deployment provider for reads/writes.
+- Project and registry metadata are still resolved from live, with best-effort shadow project
+  creation on test for content operations.
 
 ```
 Client project A
@@ -168,16 +181,16 @@ See `apps/cms/convex/schema.ts` for canonical definition. Summary:
 `apps/cms/proxy.ts` — Next.js 16 pattern (replaces deprecated `middleware.ts`):
 
 ```ts
-export function proxy(request: NextRequest) {
-  const session = request.cookies.get('__session')
-  if (!session && request.nextUrl.pathname.startsWith('/admin')) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
+const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+
+export const proxy = clerkMiddleware(async (auth, request) => {
+  if (isAdminRoute(request)) {
+    await auth.protect()
   }
-  return NextResponse.next()
-}
+})
 ```
 
-- Lightweight cookie check only — no JWT verification in proxy
+- Lightweight route gating only — no Convex/database calls in proxy
 - Full auth (Clerk `auth()`, org membership check) happens in Server Components and Actions
 - Never add business logic or database calls to proxy.ts
 
@@ -193,7 +206,7 @@ The NPM package (`packages/cms-client`) provides two entry points:
 |--------|-------------|
 | `createCMSClient` | Factory — returns `{ registerSections }` |
 | `defineCMSSection` | Define a section with typed fields |
-| `z` | Field type helpers (string, number, boolean, image) |
+| `z` | Field type helpers (string, number, boolean, image, video, document) |
 | `parseKey` | Parse a `bcms_` key into its parts |
 | `buildKey` | Build a `bcms_` key from parts |
 
