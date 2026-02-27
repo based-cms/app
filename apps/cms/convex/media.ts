@@ -29,6 +29,22 @@ export const list = query({
   },
 })
 
+/** List all media for a project across all folders (used by MediaPicker) */
+export const listAll = query({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, { projectId }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db.get(projectId)
+    if (!project || project.orgId !== orgId) return []
+
+    return ctx.db
+      .query('media')
+      .withIndex('by_project', (q) => q.eq('projectId', projectId))
+      .order('desc')
+      .collect()
+  },
+})
+
 // ─── Mutations ───────────────────────────────────────────────────────────────
 
 /** Index a newly uploaded file */
@@ -107,10 +123,12 @@ export const generateUploadUrl = action({
     projectId: v.id('projects'),
     filename: v.string(),
     mimeType: v.string(),
+    slug: v.optional(v.string()),
   },
-  handler: async (_ctx, { projectId, filename }) => {
-    // Namespace R2 keys by projectId to keep orgs isolated within the bucket
-    const r2Key = `${projectId}/${Date.now()}-${filename}`
+  handler: async (_ctx, { projectId, filename, slug }) => {
+    // Namespace R2 keys by slug (human-readable) or projectId (fallback)
+    const prefix = slug || projectId
+    const r2Key = `${prefix}/${Date.now()}-${filename}`
     const { url: uploadUrl } = await r2.generateUploadUrl(r2Key)
 
     // Public URL is served from the r2.dev CDN (or custom domain), not from the
