@@ -1,7 +1,7 @@
 # DECISIONS.md — Better CMS
 
 > Why we made the choices we made. Read this before proposing architectural changes.
-> Last updated: 2026-02-27 (Phase 0)
+> Last updated: 2026-02-27 (Phase 0 + Phase 4 additions)
 
 ---
 
@@ -185,3 +185,27 @@ not separate Convex projects or deployments.
 
 **Alternative considered**: Separate Convex datasets per env. Rejected because it would require
 the client package to know both Convex URLs and switch between them, complicating the API.
+
+---
+
+## Invite-Only Now, Self-Service Later
+
+**Decision**: Phase 1–5 are built invite-only — the developer creates all Clerk orgs manually.
+Clerk is configured with "max orgs per user = 0" to prevent clients from creating their own.
+
+**Why**: Keeps the initial deployment simple and controlled. No onboarding UX, no billing gates,
+no abuse surface while the product is in early access.
+
+**The architecture already supports self-service** — no schema or auth changes are needed to
+flip to public sign-up. When ready, the transition is:
+
+1. **Clerk**: set "max orgs per user" to `1`
+2. **Onboarding**: add `/onboarding` page — prompt new users to name their workspace and
+   create their first project (replaces manual org creation by developer)
+3. **Billing**: activate Polar UI (already integrated in schema, see `convex/polar.ts`) —
+   gate features by plan tier (free: N projects, pro: unlimited, etc.)
+4. **Superadmin**: add `/superadmin` route restricted to the developer's Clerk userId —
+   view all orgs, manage subscriptions, impersonate for support
+
+Nothing in Convex, the NPM package, or the multi-tenancy model needs to change. The orgId
+isolation is already in place and scales to any number of self-service orgs.
