@@ -124,3 +124,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Landing page ─────────────────────────────────────── */
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.bg-dot-grid {
+  background-image: radial-gradient(
+    circle,
+    rgba(232, 170, 58, 0.035) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+}
