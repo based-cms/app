@@ -1,9 +1,18 @@
+import { ConvexHttpClient } from 'convex/browser';
+import { makeFunctionReference } from 'convex/server';
 import { registerSections as _registerSections } from './server/registerSections';
 import { parseKey } from './token';
-import type { CMSClient, CMSClientOptions, CMSSection } from './types';
+import type { CMSClient, CMSClientOptions, CMSSection, InferSectionType } from './types';
+
+// Typed reference to sectionContent.getPublic (public query, no auth)
+const getPublicFn = makeFunctionReference<
+	'query',
+	{ orgSlug: string; sectionType: string; env: 'production' | 'preview' },
+	unknown[]
+>('sectionContent:getPublic');
 
 /**
- * Create a CMS client for server-side section registration.
+ * Create a CMS client for server-side operations.
  *
  * ```ts
  * // lib/cms.ts
@@ -22,6 +31,16 @@ export function createCMSClient(options: CMSClientOptions): CMSClient {
 	}
 
 	const parsed = parseKey(options.key);
+	const contentEnv = parsed.env === 'live' ? 'production' : ('preview' as const);
+
+	// Lazy HTTP client — only created if getSection is called
+	let _httpClient: ConvexHttpClient | null = null;
+	function getHttpClient() {
+		if (!_httpClient) {
+			_httpClient = new ConvexHttpClient(parsed.convexUrl);
+		}
+		return _httpClient;
+	}
 
 	return {
 		async registerSections(sections: CMSSection[]) {
@@ -29,6 +48,19 @@ export function createCMSClient(options: CMSClientOptions): CMSClient {
 				convexUrl: parsed.convexUrl,
 				registrationToken: parsed.secret,
 			});
+		},
+
+		async getSection<T extends CMSSection>(
+			section: T,
+			slug: string,
+		): Promise<InferSectionType<T>[]> {
+			const client = getHttpClient();
+			const result = await client.query(getPublicFn, {
+				orgSlug: slug,
+				sectionType: section.name,
+				env: contentEnv,
+			});
+			return result as InferSectionType<T>[];
 		},
 	};
 }

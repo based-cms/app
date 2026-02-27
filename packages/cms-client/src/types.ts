@@ -78,4 +78,17 @@ export interface CMSClient {
    * Server Action on every boot. Idempotent — safe to call repeatedly.
    */
   registerSections: (sections: CMSSection<FieldMap>[]) => Promise<void>
+
+  /**
+   * Fetch section content server-side (for Server Components / SSR).
+   * Returns the items array, fully typed from the section definition.
+   *
+   * @param section - The section definition (from defineCMSSection)
+   * @param slug - The project slug (BASED-CMS-SLUG env var)
+   * @returns Array of typed section items (empty array if no content yet)
+   */
+  getSection: <T extends CMSSection<FieldMap>>(
+    section: T,
+    slug: string
+  ) => Promise<InferSectionType<T>[]>
 }

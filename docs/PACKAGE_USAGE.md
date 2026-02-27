@@ -198,7 +198,7 @@ const cms = createCMSClient({
 })
 ```
 
-Returns `{ registerSections }`. **Server-side only** — do not import in client components.
+Returns `{ registerSections, getSection }`. **Server-side only** — do not import in client components.
 
 ---
 
@@ -327,6 +327,38 @@ await cms.registerSections([teamSection, heroSection])
 
 ---
 
+### `cms.getSection(section, slug)` — `cms-client`
+
+Fetches section content server-side. Use in **Server Components** or **Server Actions** for SSR.
+
+```ts
+import { cms } from '@/lib/cms'
+import { teamSection } from '@/lib/sections'
+
+const slug = process.env['BASED-CMS-SLUG']!
+
+// In a Server Component
+export default async function TeamPage() {
+  const team = await cms.getSection(teamSection, slug)
+  // → InferSectionType<typeof teamSection>[]
+
+  return (
+    <ul>
+      {team.map((member, i) => (
+        <li key={i}>{member.name} — {member.role}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+- Returns a **Promise** of the content array (never `undefined` — empty array if no content)
+- Uses `ConvexHttpClient` under the hood (one-shot query, no subscription)
+- Environment is derived from the key: `live` → production content, `test` → preview content
+- **No auth required** — uses the same public query as `useSection`
+
+---
+
 ## TypeScript Types
 
 ```ts
@@ -388,7 +420,8 @@ page-specific content, create distinct sections: `homeHeroSection`, `aboutHeroSe
 
 **Q: Is `useSection` compatible with SSR?**
 `useSection` is a client-side React hook (it uses Convex's realtime subscription). For SSR,
-a `getSection` Server Component helper is planned but not yet implemented — see `TODO.md`.
+use `cms.getSection(section, slug)` — it performs a one-shot Convex HTTP query and returns a
+Promise. See the `getSection` API reference above.
 
 **Q: Why two env vars instead of one token?**
 The `BASED-CMS-SLUG` is a public human-readable identifier used in Convex queries.
