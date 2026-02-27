@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { EnvProvider } from '@/components/providers/EnvProvider'
+import { DeploymentProvider } from '@/components/providers/DeploymentProvider'
 import { AdminNav } from '@/components/admin/AdminNav'
 import { AuthGate } from '@/components/admin/AuthGate'
 
@@ -15,13 +15,13 @@ export default async function AdminLayout({
   if (!orgId) redirect('/select-org')
 
   return (
-    <EnvProvider>
+    <DeploymentProvider>
       <div className="flex min-h-screen flex-col bg-background">
         <AdminNav />
         <main className="flex flex-1 flex-col">
           <AuthGate>{children}</AuthGate>
         </main>
       </div>
-    </EnvProvider>
+    </DeploymentProvider>
   )
 }

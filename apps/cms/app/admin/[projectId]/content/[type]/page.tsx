@@ -4,7 +4,7 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { use } from 'react'
-import { useEnv } from '@/components/providers/EnvProvider'
+import { useDeployment } from '@/components/providers/DeploymentProvider'
 import { SectionEditor } from '@/components/admin/SectionEditor'
 import type { FieldsSchema } from '@/components/admin/DynamicFieldRenderer'
 
@@ -14,7 +14,7 @@ export default function SectionTypePage({
   params: Promise<{ projectId: string; type: string }>
 }) {
   const { projectId, type } = use(params)
-  const { env } = useEnv()
+  const { contentEnv } = useDeployment()
 
   const registry = useQuery(api.sectionRegistry.getByType, {
     projectId: projectId as Id<'projects'>,
@@ -23,7 +23,7 @@ export default function SectionTypePage({
   const content = useQuery(api.sectionContent.get, {
     projectId: projectId as Id<'projects'>,
     sectionType: type,
-    env,
+    env: contentEnv,
   })
 
   if (registry === undefined || content === undefined) {
@@ -67,7 +67,7 @@ export default function SectionTypePage({
       <SectionEditor
         projectId={projectId as Id<'projects'>}
         sectionType={type}
-        env={env}
+        env={contentEnv}
         fieldsSchema={fieldsSchema}
         initialItems={items}
       />

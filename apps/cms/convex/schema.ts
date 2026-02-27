@@ -37,7 +37,8 @@ export default defineSchema({
     env: v.union(v.literal('production'), v.literal('preview')),
     items: v.array(v.any()),   // array of records matching the fieldsSchema
   })
-    .index('by_project_type_env', ['projectId', 'sectionType', 'env']),
+    .index('by_project_type_env', ['projectId', 'sectionType', 'env'])
+    .index('by_project', ['projectId']),
 
   // Index of files stored in Cloudflare R2
   // R2 is the source of truth for the actual bytes — this table is the metadata index

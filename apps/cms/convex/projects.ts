@@ -1,6 +1,47 @@
 import { v } from 'convex/values'
 import { query, mutation, internalQuery } from './_generated/server'
 import { requireOrgId, assertOrgAccess } from './lib/orgGuard'
+import type { MutationCtx } from './_generated/server'
+import type { Id } from './_generated/dataModel'
+
+// ─── Internal helpers ────────────────────────────────────────────────────────
+
+/** Cascade-delete all data associated with a project. */
+async function cascadeDeleteProject(
+  ctx: MutationCtx,
+  projectId: Id<'projects'>
+) {
+  // 1. section_registry
+  const registry = await ctx.db
+    .query('section_registry')
+    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+    .collect()
+  for (const doc of registry) await ctx.db.delete(doc._id)
+
+  // 2. section_content
+  const content = await ctx.db
+    .query('section_content')
+    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+    .collect()
+  for (const doc of content) await ctx.db.delete(doc._id)
+
+  // 3. media metadata (R2 objects remain — separate cleanup if needed)
+  const media = await ctx.db
+    .query('media')
+    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+    .collect()
+  for (const doc of media) await ctx.db.delete(doc._id)
+
+  // 4. folders
+  const folders = await ctx.db
+    .query('folders')
+    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+    .collect()
+  for (const doc of folders) await ctx.db.delete(doc._id)
+
+  // 5. project itself
+  await ctx.db.delete(projectId)
+}
 
 // ─── Internal Queries ────────────────────────────────────────────────────────
 
@@ -78,11 +119,12 @@ export const create = mutation({
   },
 })
 
-/** Update project branding */
+/** Update project fields (name, slug, branding) */
 export const update = mutation({
   args: {
     projectId: v.id('projects'),
     name: v.optional(v.string()),
+    slug: v.optional(v.string()),
     primaryColor: v.optional(v.string()),
     faviconUrl: v.optional(v.string()),
   },
@@ -95,8 +137,20 @@ export const update = mutation({
       throw new Error('Project not found')
     }
 
-    const patch: Partial<typeof fields> = {}
+    // Validate slug uniqueness if changing
+    if (fields.slug !== undefined) {
+      const existing = await ctx.db
+        .query('projects')
+        .withIndex('by_slug', (q) => q.eq('slug', fields.slug!))
+        .unique()
+      if (existing && existing._id !== projectId) {
+        throw new Error(`Slug "${fields.slug}" is already taken`)
+      }
+    }
+
+    const patch: Record<string, string> = {}
     if (fields.name !== undefined) patch.name = fields.name
+    if (fields.slug !== undefined) patch.slug = fields.slug
     if (fields.primaryColor !== undefined) patch.primaryColor = fields.primaryColor
     if (fields.faviconUrl !== undefined) patch.faviconUrl = fields.faviconUrl
 
@@ -129,7 +183,7 @@ export const generateRegistrationToken = mutation({
   },
 })
 
-/** Delete a project and all its data */
+/** Delete a project and all its data (cascade) */
 export const remove = mutation({
   args: { projectId: v.id('projects') },
   handler: async (ctx, { projectId }) => {
@@ -138,6 +192,52 @@ export const remove = mutation({
     if (!project || project.orgId !== orgId) {
       throw new Error('Project not found')
     }
-    await ctx.db.delete(projectId)
+
+    await cascadeDeleteProject(ctx, projectId)
+    return { slug: project.slug }
+  },
+})
+
+// ─── Cross-deployment sync mutations ─────────────────────────────────────────
+
+/**
+ * Delete a project by slug — for cross-deployment cleanup
+ * where project IDs differ between deployments.
+ */
+export const removeBySlug = mutation({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db
+      .query('projects')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    if (!project || project.orgId !== orgId) {
+      throw new Error('Project not found')
+    }
+
+    await cascadeDeleteProject(ctx, project._id)
+  },
+})
+
+/**
+ * Sync a registration token to a project identified by slug.
+ * Used after generating a token on the primary deployment.
+ */
+export const syncRegistrationToken = mutation({
+  args: {
+    slug: v.string(),
+    registrationToken: v.string(),
+  },
+  handler: async (ctx, { slug, registrationToken }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db
+      .query('projects')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    if (!project || project.orgId !== orgId) {
+      throw new Error('Project not found')
+    }
+    await ctx.db.patch(project._id, { registrationToken })
   },
 })

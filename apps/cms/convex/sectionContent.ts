@@ -60,6 +60,44 @@ export const getPublic = query({
   },
 })
 
+/**
+ * Get ALL content for a project — for migration.
+ * Returns every section_content document for the project.
+ */
+export const getAllForProject = query({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, { projectId }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db.get(projectId)
+    if (!project || project.orgId !== orgId) return []
+
+    return ctx.db
+      .query('section_content')
+      .withIndex('by_project', (q) => q.eq('projectId', projectId))
+      .collect()
+  },
+})
+
+/**
+ * Get ALL content for a project by slug — for cross-deployment migration reads.
+ */
+export const getAllBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db
+      .query('projects')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    if (!project || project.orgId !== orgId) return []
+
+    return ctx.db
+      .query('section_content')
+      .withIndex('by_project', (q) => q.eq('projectId', project._id))
+      .collect()
+  },
+})
+
 // ─── Mutations ───────────────────────────────────────────────────────────────
 
 /**
@@ -93,6 +131,51 @@ export const setItems = mutation({
       await ctx.db.insert('section_content', {
         orgId,
         projectId,
+        sectionType,
+        env,
+        items,
+      })
+    }
+  },
+})
+
+/**
+ * Set items by project slug — for cross-deployment migration writes.
+ * Upserts content for a given (slug, sectionType, env).
+ */
+export const setItemsBySlug = mutation({
+  args: {
+    slug: v.string(),
+    sectionType: v.string(),
+    env: v.union(v.literal('production'), v.literal('preview')),
+    items: v.array(v.any()),
+  },
+  handler: async (ctx, { slug, sectionType, env, items }) => {
+    const orgId = await requireOrgId(ctx)
+    const project = await ctx.db
+      .query('projects')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    if (!project || project.orgId !== orgId) {
+      throw new Error('Project not found')
+    }
+
+    const existing = await ctx.db
+      .query('section_content')
+      .withIndex('by_project_type_env', (q) =>
+        q
+          .eq('projectId', project._id)
+          .eq('sectionType', sectionType)
+          .eq('env', env)
+      )
+      .unique()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { items })
+    } else {
+      await ctx.db.insert('section_content', {
+        orgId,
+        projectId: project._id,
         sectionType,
         env,
         items,

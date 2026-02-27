@@ -1,40 +1,14 @@
 'use client'
 
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { use, useMemo, useState } from 'react'
+import { use } from 'react'
 import Link from 'next/link'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { useDeployment } from '@/components/providers/DeploymentProvider'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { FileText, FolderOpen, Copy, RefreshCw, AlertTriangle } from 'lucide-react'
-import { toast } from 'sonner'
-
-function getDeploymentName(): string {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!url) return '<deployment-name>'
-  try {
-    const hostname = new URL(url).hostname
-    return hostname.split('.')[0] ?? '<deployment-name>'
-  } catch {
-    return '<deployment-name>'
-  }
-}
-
-function buildKey(env: 'test' | 'live', deploymentName: string, secret: string): string {
-  return `bcms_${env}-${btoa(`${deploymentName}.${secret}`)}`
-}
+import { cn } from '@/lib/utils'
+import { FileText, FolderOpen, Settings, ArrowRight } from 'lucide-react'
 
 export default function ProjectPage({
   params,
@@ -48,287 +22,193 @@ export default function ProjectPage({
   const sections = useQuery(api.sectionRegistry.list, {
     projectId: projectId as Id<'projects'>,
   })
-  const generateToken = useMutation(api.projects.generateRegistrationToken)
-  const [justGenerated, setJustGenerated] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-
-  const deploymentName = useMemo(() => getDeploymentName(), [])
-
-  const testKey = useMemo(() => {
-    if (!project?.registrationToken) return null
-    return buildKey('test', deploymentName, project.registrationToken)
-  }, [deploymentName, project?.registrationToken])
-
-  const liveKey = useMemo(() => {
-    if (!project?.registrationToken) return null
-    return buildKey('live', deploymentName, project.registrationToken)
-  }, [deploymentName, project?.registrationToken])
+  const { env, setEnv, testAvailable } = useDeployment()
 
   if (project === undefined) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-8 sm:px-6">
         <div className="h-24 animate-pulse rounded-lg bg-muted" />
-        <div className="h-64 animate-pulse rounded-lg bg-muted" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="h-20 animate-pulse rounded-lg bg-muted" />
+          <div className="h-20 animate-pulse rounded-lg bg-muted" />
+        </div>
       </div>
     )
   }
 
   if (!project) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <p className="text-sm text-muted-foreground">Project not found.</p>
       </div>
     )
   }
 
-  async function handleGenerateToken() {
-    setGenerating(true)
-    try {
-      await generateToken({ projectId: projectId as Id<'projects'> })
-      setJustGenerated(true)
-      toast.success('New key generated')
-    } catch {
-      toast.error('Failed to generate key')
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  function handleGenerateClick() {
-    if (testKey) {
-      setConfirmOpen(true)
-    } else {
-      void handleGenerateToken()
-    }
-  }
-
-  function copyToClipboard(text: string, label: string) {
-    void navigator.clipboard.writeText(text)
-    toast.success(`${label} copied`)
-  }
-
-  const showKeys = justGenerated && testKey && liveKey
-
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* Quick links */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Link href={`/admin/${projectId}/content`}>
-          <Card className="h-full transition-all hover:border-foreground/20 hover:shadow-sm">
-            <CardHeader className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500/10">
-                  <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm">Content</CardTitle>
-                  <CardDescription className="text-xs">
-                    {sections === undefined
-                      ? '\u2026'
-                      : sections.length === 0
-                        ? 'No sections registered'
-                        : `${sections.length} section${sections.length !== 1 ? 's' : ''}`}
-                  </CardDescription>
-                </div>
-              </div>
-              {sections && sections.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {sections.map((s) => (
-                    <Badge key={s._id} variant="secondary" className="text-[10px]">
-                      {s.label}
-                    </Badge>
-                  ))}
-                </div>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      {/* ── Environment Selector ────────────────────────────────────── */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+          Environment
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Live */}
+          <button
+            onClick={() => setEnv('live')}
+            className={cn(
+              'group flex flex-col rounded-xl border p-5 text-left transition-all',
+              env === 'live'
+                ? 'border-emerald-500/30 bg-emerald-500/[0.03] ring-1 ring-emerald-500/20'
+                : 'hover:border-foreground/15 hover:bg-muted/30'
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                className={cn(
+                  'h-2.5 w-2.5 rounded-full transition-colors',
+                  env === 'live'
+                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                    : 'bg-emerald-500/40'
+                )}
+              />
+              <span className="text-sm font-semibold">Live</span>
+              {env === 'live' && (
+                <Badge
+                  variant="secondary"
+                  className="ml-auto border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-400"
+                >
+                  Active
+                </Badge>
               )}
-            </CardHeader>
-          </Card>
-        </Link>
+            </div>
+            <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+              Production content served to end users
+            </p>
+          </button>
 
-        <Link href={`/admin/${projectId}/files`}>
-          <Card className="h-full transition-all hover:border-foreground/20 hover:shadow-sm">
-            <CardHeader className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-500/10">
-                  <FolderOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm">Files</CardTitle>
-                  <CardDescription className="text-xs">
-                    Upload and manage media
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Connect your project */}
-      <div className="mt-6 rounded-lg border p-5">
-        <p className="text-sm font-semibold">Connect your client project</p>
-
-        <div className="mt-5 space-y-5">
-          {/* Step 1 */}
-          <div className="flex gap-3">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
-              1
-            </span>
-            <div className="flex-1">
-              <p className="text-[13px] font-medium">Generate an API key</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {testKey
-                  ? 'Key generated. Copy it below or regenerate.'
-                  : 'Click the button to create your API key.'}
-              </p>
-              <div className="mt-2.5">
-                <div className="mb-1 flex items-center justify-between">
-                  <p className="font-mono text-[11px] text-muted-foreground">BASED-CMS-KEY</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    disabled={generating}
-                    onClick={handleGenerateClick}
-                    title={testKey ? 'Regenerate key' : 'Generate key'}
-                  >
-                    <RefreshCw className={`h-3 w-3 ${generating ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
-
-                {showKeys && (
-                  <div className="mb-2 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5">
-                    <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600" />
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                      Copy your keys now. They won&apos;t be shown again after you leave this page.
-                    </p>
-                  </div>
+          {/* Test */}
+          <button
+            onClick={() => testAvailable && setEnv('test')}
+            disabled={!testAvailable}
+            className={cn(
+              'group flex flex-col rounded-xl border p-5 text-left transition-all',
+              !testAvailable && 'cursor-not-allowed opacity-50',
+              env === 'test'
+                ? 'border-amber-500/30 bg-amber-500/[0.03] ring-1 ring-amber-500/20'
+                : testAvailable
+                  ? 'hover:border-foreground/15 hover:bg-muted/30'
+                  : ''
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                className={cn(
+                  'h-2.5 w-2.5 rounded-full transition-colors',
+                  env === 'test'
+                    ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                    : 'bg-amber-500/40'
                 )}
-
-                {testKey && liveKey ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        test
-                      </Badge>
-                      <code className="flex-1 overflow-hidden rounded bg-muted px-2.5 py-1.5 font-mono text-[11px]">
-                        {showKeys ? testKey : `bcms_test-${'•'.repeat(20)}`}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => copyToClipboard(testKey, 'Test key')}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        live
-                      </Badge>
-                      <code className="flex-1 overflow-hidden rounded bg-muted px-2.5 py-1.5 font-mono text-[11px]">
-                        {showKeys ? liveKey : `bcms_live-${'•'.repeat(20)}`}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => copyToClipboard(liveKey, 'Live key')}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="rounded bg-muted px-2.5 py-1.5 text-xs text-muted-foreground">
-                    No key yet — click <RefreshCw className="inline h-3 w-3" /> to generate one
-                  </p>
-                )}
-              </div>
+              />
+              <span className="text-sm font-semibold">Test</span>
+              {env === 'test' && (
+                <Badge
+                  variant="secondary"
+                  className="ml-auto border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400"
+                >
+                  Active
+                </Badge>
+              )}
+              {!testAvailable && (
+                <Badge
+                  variant="outline"
+                  className="ml-auto text-[10px] text-muted-foreground"
+                >
+                  Not configured
+                </Badge>
+              )}
             </div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="flex gap-3">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
-              2
-            </span>
-            <div className="flex-1">
-              <p className="text-[13px] font-medium">
-                Add to <code className="text-[11px]">.env.local</code>
-              </p>
-              <div className="mt-2">
-                <div className="mb-1 flex justify-end">
-                  {testKey && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      title="Copy .env.local snippet"
-                      onClick={() =>
-                        copyToClipboard(
-                          `BASED-CMS-SLUG=${project.slug}\nBASED-CMS-KEY=${testKey}`,
-                          '.env.local snippet'
-                        )
-                      }
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-                <pre className="overflow-x-auto rounded-md bg-zinc-950 px-3.5 py-3 text-[11px] leading-relaxed text-zinc-100 dark:bg-zinc-900">
-                  <span className="text-zinc-500"># Based CMS</span>
-                  {'\n'}
-                  <span className="text-emerald-400">BASED-CMS-SLUG</span>
-                  <span className="text-zinc-400">=</span>
-                  {project.slug}
-                  {'\n'}
-                  <span className="text-emerald-400">BASED-CMS-KEY</span>
-                  <span className="text-zinc-400">=</span>
-                  {showKeys
-                    ? testKey
-                    : testKey
-                      ? `bcms_test-${'•'.repeat(20)}`
-                      : '<generate a key above>'}
-                </pre>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 3 */}
-          <div className="flex gap-3">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background">
-              3
-            </span>
-            <div className="flex-1">
-              <p className="text-[13px] font-medium">Or scaffold a new project</p>
-              <pre className="mt-2 overflow-x-auto rounded-md bg-zinc-950 px-3.5 py-2.5 text-[11px] text-zinc-100 dark:bg-zinc-900">
-                npx create-based-cms
-              </pre>
-            </div>
-          </div>
+            <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+              {testAvailable
+                ? 'Development content for testing'
+                : 'Set NEXT_PUBLIC_CONVEX_TEST_URL to enable'}
+            </p>
+          </button>
         </div>
-      </div>
+      </section>
 
-      {/* Regenerate confirmation */}
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Regenerate API key?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will invalidate your current key. Any client projects using the old key will stop
-              working until you update their environment variables.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleGenerateToken()}>
-              Regenerate
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* ── Quick Links ─────────────────────────────────────────────── */}
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+          Quick links
+        </h2>
+        <div className="divide-y rounded-xl border">
+          <Link
+            href={`/admin/${projectId}/content`}
+            className="group flex items-center gap-4 rounded-t-xl px-5 py-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
+              <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Content</p>
+              <p className="text-[12px] text-muted-foreground">
+                {sections === undefined
+                  ? '\u2026'
+                  : sections.length === 0
+                    ? 'No sections registered'
+                    : `${sections.length} section${sections.length !== 1 ? 's' : ''} registered`}
+              </p>
+            </div>
+            {sections && sections.length > 0 && (
+              <div className="hidden flex-wrap gap-1 sm:flex">
+                {sections.slice(0, 4).map((s) => (
+                  <Badge key={s._id} variant="secondary" className="text-[10px]">
+                    {s.label}
+                  </Badge>
+                ))}
+                {sections.length > 4 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    +{sections.length - 4}
+                  </Badge>
+                )}
+              </div>
+            )}
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-foreground" />
+          </Link>
+
+          <Link
+            href={`/admin/${projectId}/files`}
+            className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
+              <FolderOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Files</p>
+              <p className="text-[12px] text-muted-foreground">
+                Upload and manage media
+              </p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-foreground" />
+          </Link>
+
+          <Link
+            href={`/admin/${projectId}/settings`}
+            className="group flex items-center gap-4 rounded-b-xl px-5 py-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-500/10">
+              <Settings className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Settings</p>
+              <p className="text-[12px] text-muted-foreground">
+                API keys, data migration, project config
+              </p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-foreground" />
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }

@@ -20,6 +20,7 @@ const projectTabs = [
   { key: 'overview', label: 'Overview', path: '' },
   { key: 'content', label: 'Content', path: '/content' },
   { key: 'files', label: 'Files', path: '/files' },
+  { key: 'settings', label: 'Settings', path: '/settings' },
 ] as const
 
 function Slash() {
@@ -62,6 +63,8 @@ export function AdminNav() {
       activeTab = 'content'
     } else if (pathname.startsWith(`${basePath}/files`)) {
       activeTab = 'files'
+    } else if (pathname.startsWith(`${basePath}/settings`)) {
+      activeTab = 'settings'
     }
   }
 
