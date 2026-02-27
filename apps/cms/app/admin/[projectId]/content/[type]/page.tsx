@@ -1,12 +1,14 @@
 'use client'
 
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { use } from 'react'
 import { useDeployment } from '@/components/providers/DeploymentProvider'
 import { ContentDeploymentGate } from '@/components/admin/ContentDeploymentGate'
 import { SectionEditor } from '@/components/admin/SectionEditor'
+import { Button } from '@/components/ui/button'
+import { Archive, RotateCcw } from 'lucide-react'
 import type { FieldsSchema } from '@/components/admin/DynamicFieldRenderer'
 
 /**
@@ -158,6 +160,19 @@ export default function SectionTypePage({
     )
   }
 
+  // Archived section — show notice instead of editor
+  if (registry.archivedAt) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-lg font-semibold">{registry.label}</h1>
+          <p className="font-mono text-[11px] text-muted-foreground">{type}</p>
+        </div>
+        <ArchivedNotice projectId={pid} sectionType={type} />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
@@ -172,6 +187,36 @@ export default function SectionTypePage({
           registry={registry}
         />
       </ContentDeploymentGate>
+    </div>
+  )
+}
+
+function ArchivedNotice({
+  projectId,
+  sectionType,
+}: {
+  projectId: Id<'projects'>
+  sectionType: string
+}) {
+  const restoreMutation = useMutation(api.sectionRegistry.restore)
+
+  return (
+    <div className="rounded-xl border border-dashed py-12 text-center">
+      <Archive className="mx-auto h-8 w-8 text-muted-foreground/50" />
+      <p className="mt-4 text-sm font-medium">This section is archived</p>
+      <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-muted-foreground">
+        It is no longer registered by the client app. Content is preserved but
+        editing is disabled.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-5 gap-1.5"
+        onClick={() => restoreMutation({ projectId, sectionType })}
+      >
+        <RotateCcw className="h-3.5 w-3.5" />
+        Restore section
+      </Button>
     </div>
   )
 }

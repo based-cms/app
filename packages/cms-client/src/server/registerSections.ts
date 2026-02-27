@@ -7,23 +7,28 @@ interface RegisterOptions {
   registrationToken: string
 }
 
-// Typed reference to sectionRegistry.upsertPublic
-const upsertPublicFn = makeFunctionReference<
+// Typed reference to sectionRegistry.syncPublic — syncs the full list in one call
+const syncPublicFn = makeFunctionReference<
   'mutation',
   {
     registrationToken: string
-    sectionType: string
-    label: string
-    fieldsSchema: string
+    sections: Array<{
+      sectionType: string
+      label: string
+      fieldsSchema: string
+    }>
   }
->('sectionRegistry:upsertPublic')
+>('sectionRegistry:syncPublic')
 
 /**
- * Upsert all section definitions into Convex section_registry.
+ * Sync all section definitions into Convex section_registry.
  *
  * Called from a Server Component or Server Action on every app boot.
  * Uses the registrationToken for auth (no Clerk session needed).
- * The token resolves the project automatically via the by_token index.
+ *
+ * - Upserts all provided sections (creates or updates)
+ * - Archives any registry entries no longer in the list
+ * - Unarchives previously archived sections that reappear
  */
 export async function registerSections(
   sections: CMSSection[],
@@ -38,12 +43,12 @@ export async function registerSections(
 
   const client = new ConvexHttpClient(options.convexUrl)
 
-  for (const section of sections) {
-    await client.mutation(upsertPublicFn, {
-      registrationToken: options.registrationToken,
+  await client.mutation(syncPublicFn, {
+    registrationToken: options.registrationToken,
+    sections: sections.map((section) => ({
       sectionType: section.name,
       label: section.label,
       fieldsSchema: section.fieldsSchema,
-    })
-  }
+    })),
+  })
 }

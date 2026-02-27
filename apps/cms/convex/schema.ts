@@ -24,6 +24,7 @@ export default defineSchema({
     sectionType: v.string(),   // e.g. "team", "faq"
     label: v.string(),         // human-readable, e.g. "Team Members"
     fieldsSchema: v.string(),  // JSON-serialized field definitions from defineCMSSection
+    archivedAt: v.optional(v.number()), // Unix ms — set when section removed from client code
   })
     .index('by_project', ['projectId'])
     .index('by_project_type', ['projectId', 'sectionType']),

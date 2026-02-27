@@ -3,7 +3,7 @@
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { use } from 'react'
+import { use, useMemo } from 'react'
 import Link from 'next/link'
 import { useDeployment } from '@/components/providers/DeploymentProvider'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,10 @@ export default function ProjectPage({
   const sections = useQuery(api.sectionRegistry.list, {
     projectId: projectId as Id<'projects'>,
   })
+  const activeSections = useMemo(
+    () => sections?.filter((s) => !s.archivedAt) ?? [],
+    [sections]
+  )
   const { env, setEnv, testAvailable } = useDeployment()
   const testLabel = testAvailable
     ? 'Separate test deployment'
@@ -143,21 +147,21 @@ export default function ProjectPage({
               <p className="text-[12px] text-muted-foreground">
                 {sections === undefined
                   ? '\u2026'
-                  : sections.length === 0
+                  : activeSections.length === 0
                     ? 'No sections registered'
-                    : `${sections.length} section${sections.length !== 1 ? 's' : ''} registered`}
+                    : `${activeSections.length} section${activeSections.length !== 1 ? 's' : ''} registered`}
               </p>
             </div>
-            {sections && sections.length > 0 && (
+            {activeSections.length > 0 && (
               <div className="hidden flex-wrap gap-1 sm:flex">
-                {sections.slice(0, 4).map((s) => (
+                {activeSections.slice(0, 4).map((s) => (
                   <Badge key={s._id} variant="secondary" className="text-[10px]">
                     {s.label}
                   </Badge>
                 ))}
-                {sections.length > 4 && (
+                {activeSections.length > 4 && (
                   <Badge variant="secondary" className="text-[10px]">
-                    +{sections.length - 4}
+                    +{activeSections.length - 4}
                   </Badge>
                 )}
               </div>
