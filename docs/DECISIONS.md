@@ -1,7 +1,7 @@
 # DECISIONS.md — Better CMS
 
 > Why we made the choices we made. Read this before proposing architectural changes.
-> Last updated: 2026-02-27 (Phase 0 + Phase 4 + single-token encoding)
+> Last updated: 2026-02-27 (Phase 5 complete)
 
 ---
 
@@ -172,24 +172,37 @@ frontend work — no schema migrations, no component re-installation.
 
 ---
 
-## Single Token (bcms_) for All Client Config
+## Two Env Vars (SLUG + KEY) for Client Config
 
-**Decision**: Encode Convex URL, org slug, and registration key into a single `bcms_<base64>`
-token. Clients set one env var (`NEXT_PUBLIC_BETTER_CMS_TOKEN`) instead of three.
+**Decision**: Use two env vars — `BETTER-CMS-SLUG` (org slug) and `BETTER-CMS-KEY` (encoded
+Convex deployment + registration secret). The key uses a `bcms_<test|live>-<base64>` format.
 
-**Why**:
-- Reduces setup from 3 env vars to 1
-- The Convex URL was already public (visible in network tab)
-- The org slug was already public (used in unauthenticated queries)
-- The registration key only allows idempotent section registration — not content mutation
-- Enables `npx create-better-cms` to scaffold projects with zero-config
+**Key format**: `bcms_<test|live>-<base64(deploymentName.SECRET24)>`
+- `deploymentName` — Convex deployment name (e.g. `elated-tapir-331`), used to derive the URL
+- `SECRET24` — 24-char uppercase alphanumeric registration token
+- `test` / `live` prefix maps to `preview` / `production` content environment
 
-**Token format**: `bcms_` prefix + Base64-encoded JSON `{ v: 1, url, slug, key }`.
-The `v` field enables future format changes without breaking existing tokens.
+**Why two vars instead of one**:
+- Keeping `BETTER-CMS-SLUG` separate makes it easy to copy/read without parsing base64
+- The slug is used in public Convex queries — exposing it explicitly is intentional
+- The key encodes only what's needed for the registration call (deployment + secret)
 
-**Security**: The token is `NEXT_PUBLIC_` — intentionally client-visible. The key grants only
-`registerSections` access (idempotent upserts). All content mutations require Clerk auth.
-Project owners can regenerate the token at any time to revoke the old key.
+**Why not JSON-in-base64**:
+- Simpler format, no JSON parsing for the common path
+- The deployment name doubles as the Convex URL (just append the region and domain)
+- Avoids a `v` versioning field — format is compact and unambiguous
+
+**Security**: `BETTER-CMS-KEY` is intentionally in `.env.local` (not `NEXT_PUBLIC_`). It is
+only accessed server-side (in `layout.tsx` for `registerSections`). The `BETTER-CMS-SLUG`
+can safely be used client-side — it is public-facing. The Convex URL derived from the key
+is exposed to browsers via `CMSProvider` props, but that is intentional (it's a public endpoint).
+
+**Registration**: The secret (from the key) is used by `sectionRegistry.upsertPublic` —
+a Convex mutation that accepts a `registrationToken` and resolves the project via `by_token`
+index. No Clerk session is required. This allows server-side registration from any Next.js
+deployment without browser-side auth.
+
+Project owners can regenerate the key at any time from the CMS dashboard to revoke old secrets.
 
 ---
 

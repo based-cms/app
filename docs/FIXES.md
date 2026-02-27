@@ -3,7 +3,7 @@
 > Non-obvious fixes made during the build, with explanation.
 > Add entries here whenever a fix is not immediately self-evident from the code change.
 > Format: ## [Phase X] — Short description
-> Last updated: 2026-02-27 (Phase 0 — no fixes yet)
+> Last updated: 2026-02-27 (Phase 5 complete)
 
 ---
 
@@ -88,3 +88,42 @@ in both `requireOrgId` and `assertOrgAccess` in `convex/lib/orgGuard.ts`.
 **Root cause**: `create-next-app` created `apps/cms/pnpm-workspace.yaml` and `apps/cms/pnpm-lock.yaml`, making `apps/cms` treat itself as the root of a separate workspace. This broke cross-workspace resolution.
 
 **Fix**: Delete `apps/cms/pnpm-workspace.yaml` and `apps/cms/pnpm-lock.yaml`, then run `pnpm install` from the monorepo root. The app is then correctly treated as a workspace package within the root workspace.
+
+---
+
+## [Phase 5] — R2 presigned upload CORS error
+
+**Symptom**: File uploads fail in the browser with:
+> Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource
+> at `https://<bucket>.r2.dev/...`. Reason: CORS request did not succeed.
+
+**Root cause**: `R2_ENDPOINT` was set to the `r2.dev` public CDN URL (e.g. `https://better-cms-media.r2.dev`) instead of the S3 API endpoint (e.g. `https://<account-id>.r2.cloudflarestorage.com`). The Convex R2 component uses `R2_ENDPOINT` to generate presigned `PUT` upload URLs. Presigned S3 uploads must go to the S3 API hostname — not the CDN hostname. Browsers sent the `PUT` to the CDN URL which has no CORS configuration for uploads.
+
+Additionally, after upload the public URL was being derived by stripping the query string from the presigned upload URL. This gave a `cloudflarestorage.com` URL that browsers cannot fetch (private S3 endpoint).
+
+**Fix**:
+1. Set `R2_ENDPOINT` back to `https://<account-id>.r2.cloudflarestorage.com`
+2. Add a new Convex env var `R2_PUBLIC_BASE_URL=https://<bucket>.r2.dev`
+3. In `convex/media.ts` `generateUploadUrl`: construct `publicUrl = process.env.R2_PUBLIC_BASE_URL + '/' + r2Key` and return it alongside `uploadUrl`
+4. In `MediaUploader.tsx` and `files/page.tsx`: use the returned `publicUrl` as the stored URL (not a derived URL from the upload endpoint)
+
+**Rule of thumb**: Two R2 URLs serve different purposes and must never be swapped:
+- `R2_ENDPOINT` (`cloudflarestorage.com`) — write-only S3 API, never exposed to browsers
+- `R2_PUBLIC_BASE_URL` (`r2.dev`) — read-only CDN, served to browsers
+
+---
+
+## [Phase 5] — `exactOptionalPropertyTypes` error in registerSections spread
+
+**Symptom**: `tsc` fails in `packages/cms-client/src/server/registerSections.ts` with:
+> Type `string | undefined` is not assignable to type `string` (TS2322)
+
+on a mutation argument that has an optional field.
+
+**Root cause**: `exactOptionalPropertyTypes: true` in `packages/tsconfig/library.json` means you cannot pass `{ field: value | undefined }` where `{ field?: string }` is expected, even when `value` is `undefined`. TypeScript treats the presence of the key (with `undefined` value) as different from the key being absent.
+
+**Fix**: Use conditional spread to only include the key when the value is defined:
+```ts
+...(value !== undefined ? { field: value } : {})
+```
+This ensures the key is entirely absent from the object when the value is undefined, satisfying `exactOptionalPropertyTypes`.

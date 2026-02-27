@@ -82,14 +82,15 @@ better-cms/
 
 ## Key Architectural Decisions
 
-### Single Token (bcms_) — all client config in one env var
-The CMS dashboard generates a `bcms_<base64>` token encoding `{ v, url, slug, key }`.
-Client projects set `NEXT_PUBLIC_BETTER_CMS_TOKEN=bcms_...` — this single env var replaces
-the old `NEXT_PUBLIC_CONVEX_URL` + `orgSlug` + `BETTER_CMS_TOKEN`. The `key` (UUID) is
-used by `registerSections` for auth; Convex URL and slug are decoded automatically.
-See `packages/cms-client/src/token.ts` for encode/decode. The token is `NEXT_PUBLIC_`
-because all its contents are safe for client-side use (the key only allows idempotent
-section registration, not content mutation).
+### Two Env Vars: BETTER-CMS-SLUG + BETTER-CMS-KEY
+Client projects need exactly two env vars:
+- `BETTER-CMS-SLUG` — public org slug (e.g. `my-project`), passed to `CMSProvider` server-side
+- `BETTER-CMS-KEY` — `bcms_<test|live>-<base64(deploymentName.SECRET)>` format, parsed by
+  `parseKey()` from `cms-client` to extract the Convex URL and registration secret
+
+`test` key → preview env content; `live` key → production env content.
+The key is **not** `NEXT_PUBLIC_` — it's server-side only. The slug is passed as a prop to
+`CMSProvider`. See `packages/cms-client/src/token.ts` for `parseKey` / `buildKey`.
 
 ### proxy.ts — NOT middleware.ts
 Next.js 16 deprecated `middleware.ts`. Use `proxy.ts` with a named export `proxy` (not
@@ -118,8 +119,9 @@ All media goes through Convex R2 component (`@convex-dev/r2`). Never use Convex 
 Uploaded files are indexed in the `media` table (r2Key, url, filename, mimeType, size).
 
 ### Public Reads: orgSlug, No Auth
-`cms.useSection()` in client projects requires no auth. `orgSlug` is the public identifier.
-The corresponding Convex query does: `projects` → find by `slug` → scope all content by `orgId`.
+`useSection()` (from `cms-client/react`) in client projects requires no auth. `orgSlug` is the
+public identifier passed via `CMSProvider`. The Convex query does: `projects` → find by `slug`
+→ scope all content by `orgId`.
 
 ### Polar: Schema Now, UI Deferred
 The Convex Polar component is integrated in `convex.config.ts` and its schema merged in.
@@ -251,7 +253,7 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 
 ## Hard Constraints Checklist
 
-- [ ] `CLAUDE.md` and `/docs` updated after every phase and every non-obvious fix
+- [x] `CLAUDE.md` and `/docs` updated after every phase and every non-obvious fix
 - [ ] Git commit after every discrete feature/task (not just phases)
 - [ ] No REST API — client projects connect directly to Convex
 - [ ] No `pages`, `slugs`, or metadata tables in CMS — content only
@@ -272,18 +274,13 @@ docs: update CLAUDE.md and PLAN.md after Phase 2
 - [x] Phase 3 — Clerk setup + proxy.ts ✅
 - [x] Phase 4 — CMS admin UI (dynamic forms, env toggle, media) ✅
 - [x] Phase 5 — NPM package (defineCMSSection, z, useSection + full type inference) ✅
-- [ ] Phase 6 — Final pass (all docs complete and accurate)
+- [x] Phase 6 — Final pass (all docs complete and accurate) ✅
 
 ---
 
-## Exact Next Steps (Phase 6)
+## Open Topics
 
-1. Review and complete `docs/ARCHITECTURE.md` — update data flow diagram, verify accuracy
-2. Review and complete `docs/PACKAGE_USAGE.md` — add registration token setup steps
-3. Review and complete `docs/SETUP.md` — add R2_PUBLIC_BASE_URL + BETTER_CMS_TOKEN env vars
-4. Review `docs/FIXES.md` — document R2 presigned URL CORS fix + R2_PUBLIC_BASE_URL pattern
-5. Update `docs/DECISIONS.md` — add registrationToken auth decision rationale
-6. Final review of all Hard Constraints — verify none violated
+See `TODO.md` in the repo root for known rough edges and deferred work.
 
 ---
 

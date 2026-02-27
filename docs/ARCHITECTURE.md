@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Better CMS
 
-> Last updated: 2026-02-27 (Phase 0)
+> Last updated: 2026-02-27 (Phase 5 complete)
 
 ---
 
@@ -31,7 +31,7 @@ Better CMS is a two-part system:
 │  │  Clerk Auth (Org-scoped)│    │  defineCMSSection(...)       │   │
 │  │  /admin/** → guarded    │    │  z.string() / z.image()...   │   │
 │  │                         │    │  cms.registerSections(...)   │   │
-│  │                         │    │  cms.useSection(section)     │   │
+│  │                         │    │  useSection(section)         │   │
 │  └────────────┬────────────┘    └──────────────┬───────────────┘   │
 │               │                                │                   │
 │               └──────────────┬─────────────────┘                   │
@@ -73,9 +73,9 @@ Better CMS is a two-part system:
 Client Next.js projects read CMS content without authentication:
 
 ```
-cms.useSection(teamSection)
-  → Convex query: sectionContent.getBySlugAndType
-  → finds project by orgSlug (public identifier)
+useSection(teamSection)   (from 'cms-client/react')
+  → Convex query: sectionContent.getPublic
+  → finds project by orgSlug (public identifier, from CMSProvider context)
   → returns items for (projectId, sectionType, env)
 ```
 
@@ -106,7 +106,8 @@ Client project A
 ```
 1. Client Next.js project boots
 2. cms.registerSections([teamSection, faqSection])
-   → Server Action → Convex mutation: sectionRegistry.upsert
+   → ConvexHttpClient → Convex mutation: sectionRegistry.upsertPublic
+   → authenticated by registrationToken (from BETTER-CMS-KEY, resolved via by_token index)
    → writes { orgId, projectId, sectionType, label, fieldsSchema } per section
 
 3. CMS admin visits /admin/[projectId]/content
@@ -122,23 +123,29 @@ Client project A
    → auto-save: Convex mutation sectionContent.setItems
    → updates section_content document
 
-6. cms.useSection(teamSection) in client Next.js
+6. useSection(teamSection) in client Next.js (from 'cms-client/react')
    → Convex subscription fires with new data
    → React component re-renders with latest content
 ```
 
 ---
 
-## Data Flow: Media Upload
+## Data Flow: File Upload (Files Tab)
 
 ```
-1. Admin selects file in /admin/[projectId]/media
-2. Client requests presigned upload URL from Convex R2 component
-3. File uploaded directly to R2 from browser
-4. On success: Convex mutation media.create writes index row
-   { orgId, projectId, r2Key, url, filename, mimeType, size, uploadedAt }
-5. Media URL available for copy-paste into image fields
+1. Admin navigates to /admin/[projectId]/files
+2. Optional: create nested folders (folders table, path-based hierarchy)
+3. Admin selects file(s) — dropped or via uploader — from current folder path
+4. Client calls Convex action media.generateUploadUrl
+   → returns { uploadUrl (S3 presigned PUT), r2Key, publicUrl (CDN URL) }
+5. Browser PUTs file directly to R2 S3 endpoint (uploadUrl)
+6. On success: Convex mutation media.create writes index row
+   { orgId, projectId, r2Key, url (publicUrl), filename, mimeType, size, uploadedAt, folder }
+7. File appears in current folder; URL available for copy-paste into image fields
 ```
+
+Files can be renamed, moved between folders, or deleted. Folder renames cascade to all
+contained files and subfolders in a single Convex mutation.
 
 ---
 
@@ -146,12 +153,13 @@ Client project A
 
 See `apps/cms/convex/schema.ts` for canonical definition. Summary:
 
-| Table | Purpose | Key Index |
-|-------|---------|-----------|
-| `projects` | One per org — stores slug, branding | `by_slug` |
+| Table | Purpose | Key Indexes |
+|-------|---------|------------|
+| `projects` | One per org — stores slug, branding, registration token | `by_slug`, `by_token` |
 | `section_registry` | Schema definitions per section type | `by_project_type` |
 | `section_content` | Actual content per section + env | `by_project_type_env` |
-| `media` | R2 file index | `by_project` |
+| `media` | R2 file index (with optional `folder` path) | `by_project`, `by_project_folder` |
+| `folders` | Nested folder hierarchy for media | `by_project`, `by_project_parent` |
 
 ---
 
@@ -177,15 +185,24 @@ export function proxy(request: NextRequest) {
 
 ## Package: cms-client
 
-The NPM package (`packages/cms-client`) provides:
+The NPM package (`packages/cms-client`) provides two entry points:
+
+### `cms-client` (server-safe, no `'use client'`)
 
 | Export | Description |
 |--------|-------------|
-| `createCMSClient` | Factory — call once per project |
+| `createCMSClient` | Factory — returns `{ registerSections }` |
 | `defineCMSSection` | Define a section with typed fields |
 | `z` | Field type helpers (string, number, boolean, image) |
-| `cms.registerSections` | Server Component — writes to section_registry |
-| `cms.useSection` | React hook — realtime, fully typed |
+| `parseKey` | Parse a `bcms_` key into its parts |
+| `buildKey` | Build a `bcms_` key from parts |
+
+### `cms-client/react` (client components only, has `'use client'`)
+
+| Export | Description |
+|--------|-------------|
+| `CMSProvider` | Wraps app with Convex + CMS context |
+| `useSection` | React hook — realtime, fully typed |
 
 ### Type Inference
 
@@ -229,7 +246,9 @@ Cloudflare R2
 └── 1 bucket — all orgs, all projects, namespaced by r2Key
 
 Client Next.js projects
-└── NEXT_PUBLIC_CONVEX_URL (same as above — direct connection)
+├── BETTER-CMS-SLUG=my-project
+└── BETTER-CMS-KEY=bcms_<test|live>-<base64>
+    (Convex URL derived from key via parseKey — no separate CONVEX_URL needed)
 ```
 
 ---

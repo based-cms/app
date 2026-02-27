@@ -1,7 +1,7 @@
 # SETUP.md — Better CMS
 
 > Step-by-step setup guide for local development and production deployment.
-> Last updated: 2026-02-27 (Phase 0 — filled in during Phase 1–3)
+> Last updated: 2026-02-27 (Phase 5 complete)
 
 ---
 
@@ -38,12 +38,16 @@ NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/admin
 Set these in the Convex dashboard under your deployment → Settings → Environment Variables:
 
 ```bash
-# Cloudflare R2
+# Cloudflare R2 — S3 API (upload endpoint — NOT the r2.dev URL)
 R2_TOKEN=<cloudflare-api-token>
 R2_ACCESS_KEY_ID=<r2-access-key-id>
 R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_BUCKET=<bucket-name>
+
+# Cloudflare R2 — Public CDN URL (for serving uploaded files to browsers)
+# Must be the r2.dev public URL or a custom domain, NOT the .cloudflarestorage.com endpoint
+R2_PUBLIC_BASE_URL=https://<your-bucket>.r2.dev
 
 # Polar (deferred — add when billing UI is built)
 # POLAR_ACCESS_TOKEN=<polar-access-token>
@@ -105,10 +109,18 @@ As the admin developer:
 
 1. Go to Cloudflare dashboard → R2 Object Storage
 2. Create a new bucket (e.g., `better-cms-media`)
-3. Enable public access or set up a custom domain for the bucket
+3. Enable **public access** on the bucket (or set up a custom domain)
 4. Create an API token with R2 read/write permissions
-5. Note the account ID, access key ID, secret access key, and endpoint URL
-6. Set these as Convex environment variables (see above)
+5. Note two distinct URLs — **do not mix them up**:
+   - **S3 endpoint** (`R2_ENDPOINT`): `https://<account-id>.r2.cloudflarestorage.com`
+     Used by Convex to generate presigned upload URLs. Never exposed to browsers.
+   - **Public CDN URL** (`R2_PUBLIC_BASE_URL`): `https://<your-bucket>.r2.dev`
+     Used to construct the public URL returned after upload. Served directly to browsers.
+6. Set all R2 variables as Convex environment variables (see above)
+
+> **Common mistake**: setting `R2_ENDPOINT` to the `r2.dev` URL causes CORS errors because
+> browsers cannot upload to the S3 API endpoint through the public CDN URL.
+> See `docs/FIXES.md` → Phase 5 — R2 presigned URL CORS error.
 
 ---
 
