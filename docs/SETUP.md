@@ -90,13 +90,29 @@ This step is what allows Convex to verify Clerk sessions and read `orgId` from t
 
 1. Clerk dashboard → Configure → JWT Templates
 2. Click **New template** → choose **Convex**
-3. The template is pre-filled — do not change it
+3. The template is pre-filled with standard claims — **add one custom claim** for superadmin:
+   - Click **Custom claims** (or edit the JSON directly)
+   - Add: `"is_superadmin": "{{user.private_metadata.is_superadmin}}"`
 4. Click **Save**
 5. Copy the **Issuer** URL shown (e.g. `https://flying-mule-67.clerk.accounts.dev`)
 6. In Convex dashboard → your project → Settings → Environment Variables, add:
    - `CLERK_ISSUER_URL` = the issuer URL you copied
 
 Without this step, `auth()` in Server Components and `requireOrgId()` in Convex functions will fail.
+
+### Granting Superadmin Access
+
+The `/superadmin` route and the Convex `listAll` query are gated by the `is_superadmin`
+private metadata field on the Clerk user profile.
+
+1. Clerk dashboard → Users → select your user
+2. Click **Private metadata** → set:
+   ```json
+   { "is_superadmin": true }
+   ```
+3. Save — the JWT will include `is_superadmin: true` on next token refresh
+
+Only users with `is_superadmin: true` in their private metadata can access the superadmin route.
 
 ### Creating Client Organizations
 

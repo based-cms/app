@@ -96,8 +96,9 @@ export const listAll = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthenticated')
 
-    const superadminId = process.env.SUPERADMIN_USER_ID
-    if (!superadminId || identity.subject !== superadminId) {
+    // is_superadmin must be added to the Clerk JWT template from user.private_metadata
+    const isSuperadmin = (identity as Record<string, unknown>)['is_superadmin'] === true
+    if (!isSuperadmin) {
       throw new Error('Unauthorized: superadmin access required')
     }
 
