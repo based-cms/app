@@ -26,7 +26,7 @@ export default function ProjectPage({
     () => sections?.filter((s) => !s.archivedAt) ?? [],
     [sections]
   )
-  const { env, setEnv, testAvailable } = useDeployment()
+  const { env, setEnv, testAvailable, canSwitchEnv } = useDeployment()
   const testLabel = testAvailable
     ? 'Separate test deployment'
     : 'Preview content in same deployment'
@@ -53,81 +53,83 @@ export default function ProjectPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      {/* ── Environment Selector ────────────────────────────────────── */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-          Environment
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {/* Live */}
-          <button
-            onClick={() => setEnv('live')}
-            className={cn(
-              'group flex flex-col rounded-xl border p-5 text-left transition-all',
-              env === 'live'
-                ? 'border-emerald-500/30 bg-emerald-500/[0.03] ring-1 ring-emerald-500/20'
-                : 'hover:border-foreground/15 hover:bg-muted/30'
-            )}
-          >
-            <div className="flex items-center gap-2.5">
-              <span
-                className={cn(
-                  'h-2.5 w-2.5 rounded-full transition-colors',
-                  env === 'live'
-                    ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                    : 'bg-emerald-500/40'
-                )}
-              />
-              <span className="text-sm font-semibold">Live</span>
-              {env === 'live' && (
-                <Badge
-                  variant="secondary"
-                  className="ml-auto border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-400"
-                >
-                  Active
-                </Badge>
+      {/* ── Environment Selector (only visible with org:beta_access:env_switch) */}
+      {canSwitchEnv && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+            Environment
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* Live */}
+            <button
+              onClick={() => setEnv('live')}
+              className={cn(
+                'group flex flex-col rounded-xl border p-5 text-left transition-all',
+                env === 'live'
+                  ? 'border-emerald-500/30 bg-emerald-500/[0.03] ring-1 ring-emerald-500/20'
+                  : 'hover:border-foreground/15 hover:bg-muted/30'
               )}
-            </div>
-            <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
-              Production content served to end users
-            </p>
-          </button>
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={cn(
+                    'h-2.5 w-2.5 rounded-full transition-colors',
+                    env === 'live'
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                      : 'bg-emerald-500/40'
+                  )}
+                />
+                <span className="text-sm font-semibold">Live</span>
+                {env === 'live' && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto border-emerald-500/20 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-400"
+                  >
+                    Active
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+                Production content served to end users
+              </p>
+            </button>
 
-          {/* Test */}
-          <button
-            onClick={() => setEnv('test')}
-            className={cn(
-              'group flex flex-col rounded-xl border p-5 text-left transition-all',
-              env === 'test'
-                ? 'border-amber-500/30 bg-amber-500/[0.03] ring-1 ring-amber-500/20'
-                : 'hover:border-foreground/15 hover:bg-muted/30'
-            )}
-          >
-            <div className="flex items-center gap-2.5">
-              <span
-                className={cn(
-                  'h-2.5 w-2.5 rounded-full transition-colors',
-                  env === 'test'
-                    ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-                    : 'bg-amber-500/40'
-                )}
-              />
-              <span className="text-sm font-semibold">Test</span>
-              {env === 'test' && (
-                <Badge
-                  variant="secondary"
-                  className="ml-auto border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400"
-                >
-                  Active
-                </Badge>
+            {/* Test */}
+            <button
+              onClick={() => setEnv('test')}
+              className={cn(
+                'group flex flex-col rounded-xl border p-5 text-left transition-all',
+                env === 'test'
+                  ? 'border-amber-500/30 bg-amber-500/[0.03] ring-1 ring-amber-500/20'
+                  : 'hover:border-foreground/15 hover:bg-muted/30'
               )}
-            </div>
-            <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
-              {testLabel}
-            </p>
-          </button>
-        </div>
-      </section>
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={cn(
+                    'h-2.5 w-2.5 rounded-full transition-colors',
+                    env === 'test'
+                      ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                      : 'bg-amber-500/40'
+                  )}
+                />
+                <span className="text-sm font-semibold">Test</span>
+                {env === 'test' && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400"
+                  >
+                    Active
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+                {testLabel}
+              </p>
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── Quick Links ─────────────────────────────────────────────── */}
       <section className="mt-8">

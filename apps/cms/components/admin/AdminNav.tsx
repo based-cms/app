@@ -6,6 +6,7 @@ import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { UserButton, useOrganization, useOrganizationList } from '@clerk/nextjs'
 import { EnvToggle } from './EnvToggle'
+import { useDeployment } from '@/components/providers/DeploymentProvider'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ export function AdminNav() {
   const pathname = usePathname()
   const { isAuthenticated } = useConvexAuth()
   const { organization } = useOrganization()
+  const { canSwitchEnv } = useDeployment()
   const { userMemberships, setActive } = useOrganizationList({
     userMemberships: { infinite: true },
   })
@@ -198,8 +200,12 @@ export function AdminNav() {
                 </DropdownMenu>
               </div>
 
-              <Slash />
-              <EnvToggle />
+              {canSwitchEnv && (
+                <>
+                  <Slash />
+                  <EnvToggle />
+                </>
+              )}
             </>
           )}
         </nav>

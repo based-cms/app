@@ -25,7 +25,7 @@ interface Props {
  * so that section_content queries/mutations work.
  */
 export function ContentDeploymentGate({ project, children }: Props) {
-  const { env, testReactClient, getAuthTestClient } = useDeployment()
+  const { env, canSwitchEnv, testReactClient, getAuthTestClient } = useDeployment()
   const ensuredRef = useRef<string | null>(null)
 
   // Auto-ensure shadow project on test deployment when switching to test
@@ -60,7 +60,7 @@ export function ContentDeploymentGate({ project, children }: Props) {
     }
   }, [env, project.slug, project.name, project.primaryColor, project.faviconUrl, getAuthTestClient])
 
-  if (env === 'test' && testReactClient) {
+  if (env === 'test' && canSwitchEnv && testReactClient) {
     return (
       <ConvexProviderWithClerk
         client={testReactClient}

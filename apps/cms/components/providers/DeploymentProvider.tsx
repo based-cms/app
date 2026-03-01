@@ -32,6 +32,8 @@ interface DeploymentContextValue {
   testUrl: string | null
   /** Whether a test deployment is configured */
   testAvailable: boolean
+  /** Whether the current org has permission to use env switching */
+  canSwitchEnv: boolean
   /**
    * ConvexReactClient for the test deployment.
    * Used to wrap content areas with a secondary ConvexProvider.
@@ -84,8 +86,12 @@ const ENV_TO_CONTENT: Record<DeploymentEnv, ContentEnv> = {
  * area with a secondary ConvexProvider using `testReactClient`.
  */
 export function DeploymentProvider({ children }: { children: ReactNode }) {
-  const { getToken } = useAuth()
+  const { getToken, has } = useAuth()
+  const canSwitchEnv = has?.({ permission: 'org:beta_access:env_switch' }) ?? false
   const [env, setEnv] = useState<DeploymentEnv>('live')
+
+  // Force live when the org doesn't have env switch permission
+  const effectiveEnv = canSwitchEnv ? env : ('live' as const)
 
   // Always-live reactive client (for the main ConvexProvider)
   const liveClient = useMemo(() => new ConvexReactClient(LIVE_URL), [])
@@ -96,7 +102,7 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
     []
   )
 
-  const contentEnv = ENV_TO_CONTENT[env]
+  const contentEnv = ENV_TO_CONTENT[effectiveEnv]
   const testAvailable = TEST_URL !== null
 
   // HTTP clients for cross-deployment operations
@@ -128,17 +134,18 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<DeploymentContextValue>(
     () => ({
-      env,
+      env: effectiveEnv,
       setEnv,
       contentEnv,
       liveUrl: LIVE_URL,
       testUrl: TEST_URL,
       testAvailable,
+      canSwitchEnv,
       testReactClient,
       getAuthTestClient,
       getAuthBothClients,
     }),
-    [env, contentEnv, testAvailable, testReactClient, getAuthTestClient, getAuthBothClients]
+    [effectiveEnv, contentEnv, testAvailable, canSwitchEnv, testReactClient, getAuthTestClient, getAuthBothClients]
   )
 
   return (

@@ -76,6 +76,7 @@ export default function SettingsPage({
     liveUrl,
     testUrl,
     testAvailable,
+    canSwitchEnv,
     getAuthTestClient,
     getAuthBothClients,
   } = useDeployment()
@@ -423,8 +424,8 @@ export default function SettingsPage({
                 </div>
               </div>
 
-              {/* Test key */}
-              {testKey && (
+              {/* Test key — only visible with env switch permission */}
+              {canSwitchEnv && testKey && (
                 <div>
                   <div className="mb-1 flex items-center gap-2">
                     <Badge
@@ -453,7 +454,7 @@ export default function SettingsPage({
                 </div>
               )}
 
-              {!testAvailable && (
+              {canSwitchEnv && !testAvailable && (
                 <p className="text-[11px] text-muted-foreground">
                   Test key unavailable — set{' '}
                   <code className="text-[10px]">NEXT_PUBLIC_CONVEX_TEST_URL</code>{' '}
@@ -469,46 +470,50 @@ export default function SettingsPage({
         </div>
       </section>
 
-      <Separator className="my-8" />
+      {/* ── Data Migration (only with env switch permission) ────────── */}
+      {canSwitchEnv && (
+        <>
+          <Separator className="my-8" />
 
-      {/* ── Data Migration ───────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-sm font-semibold">Data Migration</h2>
-        <p className="mt-1 text-[13px] text-muted-foreground">
-          Sync section content between Live and Test deployments.
-        </p>
-
-        <div className="mt-4 rounded-lg border p-5">
-          {testAvailable ? (
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={migrating}
-                onClick={() => setMigrateDirection('live-to-test')}
-              >
-                <ArrowRightLeft className="mr-1.5 h-3 w-3" />
-                Push Live → Test
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={migrating}
-                onClick={() => setMigrateDirection('test-to-live')}
-              >
-                <ArrowRightLeft className="mr-1.5 h-3 w-3" />
-                Pull Test → Live
-              </Button>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Migration unavailable — set{' '}
-              <code className="text-[10px]">NEXT_PUBLIC_CONVEX_TEST_URL</code>{' '}
-              to enable dual deployments.
+          <section>
+            <h2 className="text-sm font-semibold">Data Migration</h2>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Sync section content between Live and Test deployments.
             </p>
-          )}
-        </div>
-      </section>
+
+            <div className="mt-4 rounded-lg border p-5">
+              {testAvailable ? (
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={migrating}
+                    onClick={() => setMigrateDirection('live-to-test')}
+                  >
+                    <ArrowRightLeft className="mr-1.5 h-3 w-3" />
+                    Push Live → Test
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={migrating}
+                    onClick={() => setMigrateDirection('test-to-live')}
+                  >
+                    <ArrowRightLeft className="mr-1.5 h-3 w-3" />
+                    Pull Test → Live
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Migration unavailable — set{' '}
+                  <code className="text-[10px]">NEXT_PUBLIC_CONVEX_TEST_URL</code>{' '}
+                  to enable dual deployments.
+                </p>
+              )}
+            </div>
+          </section>
+        </>
+      )}
 
       <Separator className="my-8" />
 
