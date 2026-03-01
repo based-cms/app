@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { getSession } from '@/lib/auth-server'
 import { DeploymentProvider } from '@/components/providers/DeploymentProvider'
 import { AdminNav } from '@/components/admin/AdminNav'
 import { AuthGate } from '@/components/admin/AuthGate'
@@ -9,9 +9,11 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId, orgId } = await auth()
+  const session = await getSession()
 
-  if (!userId) redirect('/sign-in')
+  if (!session) redirect('/sign-in')
+
+  const orgId = (session.session as Record<string, unknown>)['activeOrganizationId'] as string | undefined
   if (!orgId) redirect('/select-org')
 
   return (

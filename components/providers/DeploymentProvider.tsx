@@ -9,9 +9,9 @@ import {
   type ReactNode,
 } from 'react'
 import { ConvexReactClient } from 'convex/react'
-import { ConvexProviderWithClerk } from 'convex/react-clerk'
+import { ConvexProviderWithAuth } from 'convex/react'
 import { ConvexHttpClient } from 'convex/browser'
-import { useAuth } from '@clerk/nextjs'
+import { authClient, useSession } from '@/lib/auth-client'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,6 +19,13 @@ import { useAuth } from '@clerk/nextjs'
 
 type DeploymentEnv = 'live' | 'test'
 type ContentEnv = 'production' | 'preview'
+
+interface TokenCache {
+  token: string
+  expiry: number
+}
+
+let cachedToken: TokenCache | null = null
 
 interface DeploymentContextValue {
   /** Which deployment is active: 'live' or 'test' */
@@ -75,6 +82,43 @@ const ENV_TO_CONTENT: Record<DeploymentEnv, ContentEnv> = {
 }
 
 // ---------------------------------------------------------------------------
+// Custom useAuth for Convex
+// ---------------------------------------------------------------------------
+
+function useBetterAuth() {
+  const { data: session, isPending } = useSession()
+
+  const fetchAccessToken = useCallback(
+    async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
+      if (!session) return null
+      if (!forceRefreshToken && cachedToken && cachedToken.expiry > Date.now()) {
+        return cachedToken.token
+      }
+      try {
+        const { token } = await authClient.token()
+        if (token) {
+          cachedToken = { token, expiry: Date.now() + 4 * 60 * 1000 }
+          return token
+        }
+      } catch {
+        cachedToken = null
+      }
+      return null
+    },
+    [session]
+  )
+
+  return useMemo(
+    () => ({
+      isLoading: isPending,
+      isAuthenticated: !!session,
+      fetchAccessToken,
+    }),
+    [isPending, session, fetchAccessToken]
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
@@ -86,8 +130,9 @@ const ENV_TO_CONTENT: Record<DeploymentEnv, ContentEnv> = {
  * area with a secondary ConvexProvider using `testReactClient`.
  */
 export function DeploymentProvider({ children }: { children: ReactNode }) {
-  const { getToken, has } = useAuth()
-  const canSwitchEnv = has?.({ permission: 'org:beta_access:env_switch' }) ?? false
+  // BetterAuth doesn't have a built-in permission system like Clerk's `has()`,
+  // so we default to allowing env switching when test URL is configured.
+  const canSwitchEnv = TEST_URL !== null
   const [env, setEnv] = useState<DeploymentEnv>('live')
 
   // Force live when the org doesn't have env switch permission
@@ -114,11 +159,15 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
 
   const authenticateClient = useCallback(
     async (client: ConvexHttpClient) => {
-      const token = await getToken({ template: 'convex' })
-      if (token) client.setAuth(token)
+      try {
+        const { token } = await authClient.token()
+        if (token) client.setAuth(token)
+      } catch {
+        // Silent — best-effort auth
+      }
       return client
     },
-    [getToken]
+    []
   )
 
   const getAuthTestClient = useCallback(async () => {
@@ -150,9 +199,9 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
 
   return (
     <DeploymentContext.Provider value={value}>
-      <ConvexProviderWithClerk client={liveClient} useAuth={useAuth}>
+      <ConvexProviderWithAuth client={liveClient} useAuth={useBetterAuth}>
         {children}
-      </ConvexProviderWithClerk>
+      </ConvexProviderWithAuth>
     </DeploymentContext.Provider>
   )
 }

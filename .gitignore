@@ -22,6 +22,9 @@ dist/
 .env.production
 .env.development
 
+# BetterAuth SQLite database
+auth.db
+
 # Vercel
 .vercel/
 

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
-import { useOrganization, useOrganizationList, CreateOrganization } from '@clerk/nextjs'
+import { authClient, useActiveOrganization, useListOrganizations } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,22 +11,24 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Copy, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { Id } from '@/convex/_generated/dataModel'
 
 type Step = 'org' | 'project' | 'keys' | 'done'
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { organization } = useOrganization()
-  const { userMemberships } = useOrganizationList({
-    userMemberships: { infinite: true },
-  })
+  const { data: activeOrg } = useActiveOrganization()
+  const { data: orgs } = useListOrganizations()
 
-  const hasOrg = !!organization
-  const orgCount = userMemberships?.data?.length ?? 0
+  const hasOrg = !!activeOrg
+  const orgCount = orgs?.length ?? 0
 
   // Skip org step if user already has an org
   const [step, setStep] = useState<Step>(hasOrg ? 'project' : 'org')
+
+  // Org creation state
+  const [orgName, setOrgName] = useState('')
+  const [orgLoading, setOrgLoading] = useState(false)
+  const [orgError, setOrgError] = useState('')
 
   // Project creation state
   const [name, setName] = useState('')
@@ -43,6 +45,31 @@ export default function OnboardingPage() {
   function handleNameChange(value: string) {
     setName(value)
     setSlug(value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+  }
+
+  async function handleCreateOrg(e: React.FormEvent) {
+    e.preventDefault()
+    if (!orgName.trim()) return
+    setOrgError('')
+    setOrgLoading(true)
+    try {
+      const { data, error } = await authClient.organization.create({
+        name: orgName.trim(),
+        slug: orgName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      })
+      if (error) {
+        setOrgError(error.message ?? 'Failed to create organization')
+        return
+      }
+      if (data) {
+        await authClient.organization.setActive({ organizationId: data.id })
+        setStep('project')
+      }
+    } catch {
+      setOrgError('An unexpected error occurred')
+    } finally {
+      setOrgLoading(false)
+    }
   }
 
   async function handleCreateProject(e: React.FormEvent) {
@@ -112,13 +139,13 @@ export default function OnboardingPage() {
           <div>
             <h1 className="text-xl font-semibold">Create your workspace</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Each workspace is a Clerk organization that isolates your projects.
+              Each workspace is an organization that isolates your projects.
             </p>
           </div>
           {orgCount >= 1 ? (
             <div className="space-y-4">
               <p className="text-sm">
-                You already have a workspace: <strong>{organization?.name}</strong>
+                You already have a workspace: <strong>{activeOrg?.name}</strong>
               </p>
               <Button onClick={() => setStep('project')}>
                 Continue
@@ -126,17 +153,26 @@ export default function OnboardingPage() {
               </Button>
             </div>
           ) : (
-            <div className="flex justify-center">
-              <CreateOrganization
-                afterCreateOrganizationUrl="/onboarding"
-                appearance={{
-                  elements: {
-                    rootBox: 'w-full',
-                    card: 'shadow-none border',
-                  },
-                }}
-              />
-            </div>
+            <form onSubmit={handleCreateOrg} className="space-y-4 text-left">
+              <div className="space-y-1.5">
+                <Label htmlFor="orgName">Organization name</Label>
+                <Input
+                  id="orgName"
+                  placeholder="My Organization"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              {orgError && <p className="text-sm text-destructive">{orgError}</p>}
+              <Button
+                type="submit"
+                disabled={orgLoading || !orgName.trim()}
+                className="w-full"
+              >
+                {orgLoading ? 'Creating…' : 'Create workspace'}
+              </Button>
+            </form>
           )}
         </div>
       )}

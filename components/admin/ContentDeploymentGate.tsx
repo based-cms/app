@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, type ReactNode } from 'react'
-import { ConvexProviderWithClerk } from 'convex/react-clerk'
-import { useAuth } from '@clerk/nextjs'
+import { ConvexProviderWithAuth } from 'convex/react'
 import { makeFunctionReference } from 'convex/server'
 import { useDeployment } from '@/components/providers/DeploymentProvider'
+import { authClient, useSession } from '@/lib/auth-client'
+import { useCallback, useMemo } from 'react'
 
 interface Props {
   /** Project data from the live deployment, used to create shadow on test */
@@ -15,6 +16,46 @@ interface Props {
     faviconUrl: string
   }
   children: ReactNode
+}
+
+interface TokenCache {
+  token: string
+  expiry: number
+}
+
+let cachedToken: TokenCache | null = null
+
+function useBetterAuth() {
+  const { data: session, isPending } = useSession()
+
+  const fetchAccessToken = useCallback(
+    async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
+      if (!session) return null
+      if (!forceRefreshToken && cachedToken && cachedToken.expiry > Date.now()) {
+        return cachedToken.token
+      }
+      try {
+        const { token } = await authClient.token()
+        if (token) {
+          cachedToken = { token, expiry: Date.now() + 4 * 60 * 1000 }
+          return token
+        }
+      } catch {
+        cachedToken = null
+      }
+      return null
+    },
+    [session]
+  )
+
+  return useMemo(
+    () => ({
+      isLoading: isPending,
+      isAuthenticated: !!session,
+      fetchAccessToken,
+    }),
+    [isPending, session, fetchAccessToken]
+  )
 }
 
 /**
@@ -62,12 +103,12 @@ export function ContentDeploymentGate({ project, children }: Props) {
 
   if (env === 'test' && canSwitchEnv && testReactClient) {
     return (
-      <ConvexProviderWithClerk
+      <ConvexProviderWithAuth
         client={testReactClient}
-        useAuth={useAuth}
+        useAuth={useBetterAuth}
       >
         {children}
-      </ConvexProviderWithClerk>
+      </ConvexProviderWithAuth>
     )
   }
 
