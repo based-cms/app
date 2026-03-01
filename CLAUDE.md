@@ -56,7 +56,7 @@ based-cms/
 │       └── app/
 │           ├── (auth)/sign-in/
 │           ├── onboarding/              ← self-service onboarding wizard
-│           ├── superadmin/              ← cross-org admin (gated by Clerk privateMetadata.is_superadmin)
+│           ├── superadmin/              ← cross-org admin (gated by Clerk publicMetadata.is_superadmin)
 │           └── admin/
 │               └── [projectId]/
 │                   ├── content/[type]/

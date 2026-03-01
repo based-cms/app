@@ -59,7 +59,7 @@
 
 - [x] **Self-service org onboarding**
       — `/onboarding` multi-step wizard: org creation → project name/slug → API keys display.
-      — `/superadmin` route gated by Clerk `privateMetadata.is_superadmin` (cross-org project list).
+      — `/superadmin` route gated by Clerk `publicMetadata.is_superadmin` (cross-org project list).
       — Empty-state "Get started" button in admin links to onboarding.
 
 - [x] **Rename: better-cms → based-cms**

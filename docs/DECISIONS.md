@@ -240,7 +240,7 @@ flip to public sign-up. When ready, the transition is:
    create their first project (replaces manual org creation by developer)
 3. **Billing**: activate Polar UI (already integrated in schema, see `convex/polar.ts`) —
    gate features by plan tier (free: N projects, pro: unlimited, etc.)
-4. **Superadmin**: `/superadmin` route gated by Clerk `privateMetadata.is_superadmin` —
+4. **Superadmin**: `/superadmin` route gated by Clerk `publicMetadata.is_superadmin` —
    view all orgs, manage subscriptions, impersonate for support
 
 Nothing in Convex, the NPM package, or the multi-tenancy model needs to change. The orgId

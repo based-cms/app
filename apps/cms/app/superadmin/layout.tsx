@@ -10,7 +10,7 @@ export default async function SuperadminLayout({
   const user = await currentUser()
   if (!user) redirect('/sign-in')
 
-  const isSuperadmin = (user.privateMetadata as Record<string, unknown>)?.is_superadmin === true
+  const isSuperadmin = (user.publicMetadata as Record<string, unknown>)?.is_superadmin === true
   if (!isSuperadmin) {
     redirect('/admin')
   }
