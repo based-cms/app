@@ -43,5 +43,5 @@ R2 and Clerk issuer values are configured in Convex dashboard environment variab
 
 ## Related Repositories
 
-- `based-cms-client` (npm package repo)
-- `based-cms-cli` (create-based-app CLI repo)
+- `@based-cms/client` (SDK npm package)
+- `@based-cms/get-started` (CLI npm package)
