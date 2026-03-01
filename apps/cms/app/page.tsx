@@ -230,7 +230,7 @@ export default function Home() {
 
           <div className="animate-fade-in-up animate-duration-700 animate-delay-300 mt-8 flex items-center gap-2 font-mono text-sm text-[#555]">
             <span className="text-[#e8aa3a]">$</span>
-            <span>npx create-based-cms</span>
+            <span>npx create-based-app</span>
             <span className="animate-blink text-[#e8aa3a]">_</span>
           </div>
         </div>
@@ -400,7 +400,7 @@ export default function Home() {
           <AnimateIn delay="animate-delay-200">
             <div className="mx-auto mt-10 flex w-fit items-center gap-2 border border-[#1a1a1a] bg-[#0a0a0a] px-6 py-4 font-mono text-sm text-[#666]">
               <span className="text-[#e8aa3a]">$</span>
-              npx create-based-cms
+              npx create-based-app
               <span className="animate-blink ml-0.5 text-[#e8aa3a]">_</span>
             </div>
           </AnimateIn>

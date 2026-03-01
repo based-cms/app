@@ -160,10 +160,7 @@ pnpm install
 cd apps/cms && npx convex dev
 
 # Start Next.js dev server (separate terminal)
-pnpm --filter @based-cms/cms dev
-
-# Or start everything together
-pnpm dev
+pnpm --dir apps/cms dev
 ```
 
 The CMS will be available at http://localhost:3000.
@@ -182,20 +179,15 @@ npx convex deploy --prod
 ### Vercel
 
 1. Connect the repo to Vercel
-2. Set root directory to `apps/cms` (or use Vercel's monorepo detection)
+2. Set root directory to `apps/cms`
 3. Add all environment variables from `.env.local` to Vercel project settings
 4. Deploy: `vercel --prod` or push to `main`
 
 ### Client NPM Package
 
 ```bash
-# Build the package
-pnpm --filter cms-client build
-
-# Publish to npm (requires changeset)
-pnpm changeset
-pnpm changeset version
-pnpm changeset publish
+# Client package now lives in the separate `based-cms-client` repository.
+# Build and publish it in that repository.
 ```
 
 ---
@@ -209,9 +201,9 @@ pnpm changeset publish
 → Check that `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is set correctly in `.env.local`.
 → Ensure Clerk organization feature is enabled in the Clerk dashboard.
 
-### `pnpm install` fails with workspace resolution errors
-→ Ensure `pnpm-workspace.yaml` covers both `apps/*` and `packages/*`.
-→ Run `pnpm install --force` to clear resolution cache.
+### `pnpm install` fails with lockfile errors
+→ Re-run with `pnpm install --no-frozen-lockfile` locally.
+→ If CI enforces frozen lockfile, commit updated `pnpm-lock.yaml` first.
 
 ### Type errors in generated Convex code
 → Run `npx convex dev --once` to regenerate `convex/_generated/`.

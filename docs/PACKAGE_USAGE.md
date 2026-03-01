@@ -10,7 +10,7 @@
 The fastest way to get started:
 
 ```bash
-npx create-based-cms my-project
+npx create-based-app my-project
 cd my-project
 pnpm install
 pnpm dev

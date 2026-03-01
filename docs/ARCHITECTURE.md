@@ -6,16 +6,20 @@
 
 ## System Overview
 
-Based CMS is a two-part system:
+Based CMS is a three-repo system:
 
-1. **`apps/cms`** — a central multi-tenant CMS deployed to Vercel. All clients share this app.
+1. **`better-cms` (app repo, this repo)** — central multi-tenant CMS deployed to Vercel. All
+   clients share this app.
    Auth and data isolation are handled via Clerk Organizations + Convex `orgId`. The admin UI
    can target live content by default and optionally switch content editing to a test Convex
    deployment when configured.
 
-2. **`packages/cms-client`** — an NPM package installed by client Next.js 16 projects. It
+2. **`based-cms-client` (separate repo)** — an NPM package installed by client Next.js 16 projects. It
    connects directly to Convex (no REST layer), lets clients define their own content sections,
    and returns realtime fully-typed data via React hooks.
+
+3. **`based-cms-cli` (separate repo)** — scaffolding CLI (`npx create-based-app`) for new client
+   projects prewired with `cms-client`.
 
 ---
 
@@ -23,10 +27,10 @@ Based CMS is a two-part system:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        Turborepo Monorepo                           │
+│                     Multi-Repo Architecture                         │
 │                                                                     │
 │  ┌─────────────────────────┐    ┌──────────────────────────────┐   │
-│  │      apps/cms           │    │    packages/cms-client       │   │
+│  │      app repo           │    │   based-cms-client repo      │   │
 │  │  Next.js 16 App Router  │    │    NPM package (tsup)        │   │
 │  │  Vercel app (shared)    │    │                              │   │
 │  │                         │    │  createCMSClient(...)        │   │
@@ -198,7 +202,7 @@ export const proxy = clerkMiddleware(async (auth, request) => {
 
 ## Package: cms-client
 
-The NPM package (`packages/cms-client`) provides two entry points:
+The NPM package (`based-cms-client` repository) provides two entry points:
 
 ### `cms-client` (server-safe, no `'use client'`)
 
@@ -243,7 +247,7 @@ The return type is **fully inferred** from the `fields` object. No manual type d
 
 ```
 Vercel
-└── apps/cms (Next.js 16)
+└── app repo (Next.js 16, apps/cms)
     ├── NEXT_PUBLIC_CONVEX_URL=...
     ├── NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
     └── CLERK_SECRET_KEY=...

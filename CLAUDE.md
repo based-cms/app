@@ -7,11 +7,11 @@
 
 ## Project Purpose
 
-A two-part system: (1) a central multi-tenant CMS deployed to Vercel, serving all client
+A three-repository system: (1) a central multi-tenant CMS app deployed to Vercel, serving all client
 organizations from a shared Next.js deployment with live content in Convex (and optional test
-deployment support for admin content workflows); and (2) an NPM package
-(`packages/cms-client`) that client Next.js 16 projects install to define their own content
-sections and receive realtime, fully-typed data — no REST API, no manual schema duplication.
+deployment support for admin content workflows); (2) an NPM client package in the separate
+`based-cms-client` repository; and (3) a scaffolding CLI in the separate `based-cms-cli`
+repository. Client apps receive realtime, fully-typed data — no REST API, no manual schema duplication.
 
 ---
 
@@ -24,13 +24,12 @@ sections and receive realtime, fully-typed data — no REST API, no manual schem
 | Clerk | latest |
 | Tailwind CSS | 4 |
 | shadcn/ui | latest (New York style) |
-| Turborepo | latest |
 | pnpm | 9.x |
 | tsup | 8.x |
 
 ---
 
-## Monorepo Structure
+## App Repository Structure
 
 ```
 based-cms/
@@ -62,25 +61,11 @@ based-cms/
 │                   ├── content/[type]/
 │                   ├── files/
 │                   └── media/                ← legacy redirect to /files
-└── packages/
-    ├── cms-client/
-    │   ├── src/
-    │   │   ├── index.ts             ← public API barrel
-    │   │   ├── client.ts            ← createCMSClient factory
-    │   │   ├── token.ts             ← encodeToken / decodeToken (bcms_ format)
-    │   │   ├── provider.tsx         ← <CMSProvider> wraps ConvexProvider
-    │   │   ├── defineSection.ts     ← defineCMSSection + types
-    │   │   ├── z.ts                 ← z.string() / z.image() / z.video() / z.document()
-    │   │   ├── hooks/useSection.ts  ← realtime hook, fully typed
-    │   │   └── server/registerSections.ts
-    │   ├── tsup.config.ts
-    │   └── package.json
-    └── create-based-cms/
-        ├── src/index.ts             ← CLI entry point (npx create-based-cms)
-        ├── templates/nextjs/        ← Next.js 16 project template
-        ├── tsup.config.ts
-        └── package.json
 ```
+
+Related repositories:
+- `based-cms-client` — NPM client package (React + server helpers)
+- `based-cms-cli` — `create-based-app` scaffolding CLI
 
 ---
 
@@ -94,7 +79,7 @@ Client projects need exactly two env vars:
 
 `test` key → preview env content; `live` key → production env content.
 The key is **not** `NEXT_PUBLIC_` — it's server-side only. The slug is passed as a prop to
-`CMSProvider`. See `packages/cms-client/src/token.ts` for `parseKey` / `buildKey`.
+`CMSProvider`. See `based-cms-client/src/token.ts` in the client repository for `parseKey` / `buildKey`.
 
 ### proxy.ts — NOT middleware.ts
 Next.js 16 deprecated `middleware.ts`. Use `proxy.ts` with a named export `proxy` (not
@@ -148,8 +133,7 @@ No billing UI is built yet. See `docs/DECISIONS.md` for the `TODO: Polar UI` not
 
 ## Non-Obvious Implementation Details
 
-- **pnpm workspace**: `pnpm-workspace.yaml` covers `apps/*` and `packages/*`. Always use
-  `--filter` flag when running commands for a specific workspace.
+- **Repo split**: This repository is app-only. Client and CLI live in separate repositories.
 - **Convex generated code**: Never edit `convex/_generated/`. Run `npx convex dev` to regenerate.
 - **fieldsSchema in Convex**: Stored as a JSON string (not native Convex object). Parsed at
   runtime by both the CMS (to render forms) and the client package (for type inference context).
@@ -309,23 +293,14 @@ See `TODO.md` in the repo root for known rough edges and deferred work.
 ## How to Run Locally
 
 ```bash
-# Install all workspace deps
+# Install dependencies
 pnpm install
 
-# Run all workspaces in dev mode
-pnpm dev
-
-# Run only the CMS app
-pnpm --filter @based-cms/cms dev
-
-# Build the client package
-pnpm --filter cms-client build
-
-# Build the CLI
-pnpm --filter create-based-cms build
+# Run the CMS app
+pnpm --dir apps/cms dev
 
 # Type-check everything
-pnpm type-check
+pnpm --dir apps/cms type-check
 
 # Deploy Convex functions
 cd apps/cms && npx convex deploy
@@ -340,12 +315,6 @@ cd apps/cms && npx convex deploy
 | `apps/cms/proxy.ts` | Next.js 16 auth guard — named export `proxy`, not `middleware` |
 | `apps/cms/convex/schema.ts` | Single source of truth for all Convex tables |
 | `apps/cms/convex/convex.config.ts` | R2 + Polar component registration |
-| `packages/cms-client/src/token.ts` | bcms_ token encode/decode |
-| `packages/cms-client/src/provider.tsx` | `<CMSProvider>` wrapping ConvexProvider |
-| `packages/cms-client/src/client.ts` | `createCMSClient` — registerSections + getSection SSR |
-| `packages/cms-client/src/z.ts` | Custom z namespace — field type helpers |
-| `packages/cms-client/src/defineSection.ts` | Type inference engine for section fields |
-| `packages/create-based-cms/src/index.ts` | CLI entry point for `npx create-based-cms` |
 | `docs/PLAN.md` | Full phase-by-phase build plan |
 | `docs/ARCHITECTURE.md` | System design, data flow, multi-tenancy model |
 | `docs/DECISIONS.md` | Why we made the choices we made |

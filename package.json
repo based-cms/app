@@ -1,16 +1,12 @@
 {
-  "name": "based-cms",
+  "name": "based-cms-app",
   "private": true,
+  "license": "FSL-1.1-MIT",
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
-    "clean": "turbo run clean"
-  },
-  "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "turbo": "^2.3.3"
+    "dev": "pnpm --dir apps/cms dev",
+    "build": "pnpm --dir apps/cms build",
+    "lint": "pnpm --dir apps/cms lint",
+    "type-check": "pnpm --dir apps/cms type-check"
   }
 }

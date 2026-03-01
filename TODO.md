@@ -41,10 +41,10 @@ to prevent accidental cross-environment edits are deferred to Sprint 2 continuat
 (React hook) and `CMSProvider` (React component) are React-only. Document how to use
 cms-client with Nuxt, SvelteKit, Remix, etc.
 
-## 7. `create-based-cms` CLI: bake in real CMS URL
+## 7. `create-based-app` CLI: bake in real CMS URL
 
 Currently the CLI template uses a placeholder URL. Should resolve the actual Convex deployment
-URL at build time or prompt for it during `npx create-based-cms`.
+URL at build time or prompt for it during `npx create-based-app`.
 
 ## 8. Folder delete confirmation + file orphan warning
 

@@ -132,20 +132,21 @@ of all orgs. CMS UI shows data for the currently active org in Clerk.
 
 ---
 
-## Turborepo + pnpm Workspaces
+## Multi-Repo Split (app, client, cli)
 
-**Decision**: Use Turborepo with pnpm workspaces.
+**Decision**: Split into three repositories (`better-cms` app, `based-cms-client`, `based-cms-cli`)
+instead of keeping a single Turborepo workspace.
 
 **Why**:
-- `apps/cms` and `packages/cms-client` share TypeScript config and dev tooling
-- Turborepo's task pipeline ensures `cms-client` is built before `apps/cms` type-checks
-- pnpm workspaces have better monorepo support than npm/yarn for cross-package linking
+- Clear ownership and release cadence per artifact (app deploy vs npm package releases)
+- License boundaries are explicit (app FSL, client/cli MIT)
+- Simpler publish pipelines for npm packages without workspace coupling
 
 ---
 
 ## tsup for Package Bundling
 
-**Decision**: Use `tsup` (not Rollup, esbuild directly, or tsc alone) for `packages/cms-client`.
+**Decision**: Use `tsup` (not Rollup, esbuild directly, or tsc alone) for `based-cms-client`.
 
 **Why**:
 - Dual CJS + ESM output with one config

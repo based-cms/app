@@ -77,7 +77,7 @@
 
 - [ ] Fix hardcoded `eu-west-1` region in `token.ts` (see `TODO.md` #1)
 - [ ] Fix folder delete confirmation + file orphan warning (see `TODO.md` #8)
-- [ ] `create-based-cms` CLI: bake in real CMS URL at build time (see `TODO.md` #7)
+- [ ] `create-based-app` CLI: bake in real CMS URL at build time (see `TODO.md` #7)
 - [x] `getSection` server helper for SSR — `cms.getSection(section, slug)` via ConvexHttpClient
 
 ---

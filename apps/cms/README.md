@@ -4,14 +4,14 @@ Central multi-tenant CMS app for Based CMS.
 
 ## Local Development
 
-From the monorepo root:
+From the app repo root:
 
 ```bash
 pnpm install
-pnpm --filter @based-cms/cms dev
+pnpm --dir apps/cms dev
 ```
 
-In a separate terminal, run Convex dev for this workspace:
+In a separate terminal, run Convex dev:
 
 ```bash
 cd apps/cms
@@ -45,7 +45,11 @@ R2 and Clerk issuer values are configured in Convex dashboard environment variab
 
 ## Related Docs
 
-- `../../CLAUDE.md`
-- `../../docs/ARCHITECTURE.md`
-- `../../docs/SETUP.md`
-- `../../docs/PACKAGE_USAGE.md`
+- `CLAUDE.md` (repo root)
+- `docs/ARCHITECTURE.md` (repo root)
+- `docs/SETUP.md` (repo root)
+
+## Related Repositories
+
+- `based-cms-client` (npm package repo)
+- `based-cms-cli` (create-based-app CLI repo)
