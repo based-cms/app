@@ -4,23 +4,22 @@ Central multi-tenant CMS app for Based CMS.
 
 ## Local Development
 
-From the app repo root:
+From the repo root:
 
 ```bash
 pnpm install
-pnpm --dir apps/cms dev
+pnpm dev
 ```
 
 In a separate terminal, run Convex dev:
 
 ```bash
-cd apps/cms
 npx convex dev
 ```
 
 ## Required Environment Variables
 
-Create `apps/cms/.env.local` with at least:
+Create `.env.local` with at least:
 
 ```bash
 NEXT_PUBLIC_CONVEX_URL=https://<live-deployment>.convex.cloud
@@ -34,20 +33,13 @@ NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/admin
 ```
 
-R2 and Clerk issuer values are configured in Convex dashboard environment variables
-(see `docs/SETUP.md`).
+R2 and Clerk issuer values are configured in Convex dashboard environment variables.
 
 ## Key Routes
 
 - Admin dashboard: `/admin`
 - Project content: `/admin/[projectId]/content`
 - Files manager: `/admin/[projectId]/files` (`/media` redirects here)
-
-## Related Docs
-
-- `CLAUDE.md` (repo root)
-- `docs/ARCHITECTURE.md` (repo root)
-- `docs/SETUP.md` (repo root)
 
 ## Related Repositories
 
