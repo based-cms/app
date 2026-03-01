@@ -1,22 +1,27 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { isAuthenticated } from '@/lib/auth-server'
 
 /**
- * Next.js 16 auth guard — uses clerkMiddleware() so Clerk's auth() works
- * in Server Components. Named export 'proxy' (not middleware.ts — deprecated in Next.js 16).
+ * Next.js 16 auth guard — lightweight cookie check.
  *
  * Route protection is intentionally minimal here. Full org-membership checks
- * happen in app/admin/layout.tsx (Server Component) via auth().
+ * happen in app/admin/layout.tsx (Server Component).
  */
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-const isAdminRoute = createRouteMatcher(['/admin(.*)'])
-
-export const proxy = clerkMiddleware(async (auth, request) => {
-  if (isAdminRoute(request)) {
-    // Redirect to sign-in if unauthenticated. Does not check org membership —
-    // that's handled in the admin layout Server Component.
-    await auth.protect()
+  // Protect /admin routes — redirect to sign-in if unauthenticated
+  if (pathname.startsWith('/admin') || pathname.startsWith('/superadmin')) {
+    const authed = await isAuthenticated()
+    if (!authed) {
+      const signInUrl = new URL('/sign-in', request.url)
+      return NextResponse.redirect(signInUrl)
+    }
   }
-})
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [

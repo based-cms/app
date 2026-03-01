@@ -1,5 +1,6 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { isAuthenticated, fetchAuthQuery } from '@/lib/auth-server'
+import { api } from '@/convex/_generated/api'
 import { SuperadminProviders } from './providers'
 
 export default async function SuperadminLayout({
@@ -7,15 +8,14 @@ export default async function SuperadminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await currentUser()
-  if (!user) redirect('/sign-in')
+  const authed = await isAuthenticated()
+  if (!authed) redirect('/sign-in')
 
-  // Convex needs a valid JWT with org context to authenticate queries.
-  // Any org works — superadmin queries ignore org and read all projects.
-  const { orgId } = await auth()
-  if (!orgId) redirect('/select-org')
-
-  const isSuperadmin = (user.publicMetadata as Record<string, unknown>)?.is_superadmin === true
+  // Check superadmin status via Convex query — the user's role is included in
+  // the Better Auth JWT. The getCurrentUser query returns the auth user record
+  // which has a `role` field.
+  const user = await fetchAuthQuery(api.auth.getCurrentUser)
+  const isSuperadmin = user?.role === 'superadmin'
   if (!isSuperadmin) {
     redirect('/admin')
   }

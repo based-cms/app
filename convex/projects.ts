@@ -93,8 +93,7 @@ export const getBySlug = query({
  * List ALL projects across all orgs — superadmin only.
  * Returns [] when unauthenticated or not superadmin instead of throwing.
  * The layout already gates access server-side; returning [] avoids a race
- * where ConvexProviderWithClerk fires the query before the Clerk auth
- * token is set on the Convex client.
+ * where the provider fires the query before the auth token is set.
  */
 export const listAll = query({
   args: {},
@@ -102,9 +101,9 @@ export const listAll = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return []
 
-    // is_superadmin must be added to the Clerk JWT template from user.public_metadata
-    const isSuperadmin = (identity as Record<string, unknown>)['is_superadmin'] === true
-    if (!isSuperadmin) return []
+    // Better Auth JWT includes `role` from the user record (see convex/auth.ts definePayload)
+    const role = (identity as Record<string, unknown>)['role'] as string | undefined
+    if (role !== 'superadmin') return []
 
     return ctx.db.query('projects').collect()
   },

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
-import { useOrganization, useOrganizationList, CreateOrganization } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,22 +11,27 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Copy, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { Id } from '@/convex/_generated/dataModel'
-
 type Step = 'org' | 'project' | 'keys' | 'done'
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { organization } = useOrganization()
-  const { userMemberships } = useOrganizationList({
-    userMemberships: { infinite: true },
-  })
+  const { data: activeOrg } = authClient.useActiveOrganization()
 
-  const hasOrg = !!organization
-  const orgCount = userMemberships?.data?.length ?? 0
+  const [orgCount, setOrgCount] = useState(0)
+  useEffect(() => {
+    void authClient.organization.list().then(({ data }) => {
+      setOrgCount(data?.length ?? 0)
+    })
+  }, [])
 
+  const hasOrg = !!activeOrg
   // Skip org step if user already has an org
   const [step, setStep] = useState<Step>(hasOrg ? 'project' : 'org')
+
+  // Org creation state
+  const [orgName, setOrgName] = useState('')
+  const [orgSlug, setOrgSlug] = useState('')
+  const [orgCreating, setOrgCreating] = useState(false)
 
   // Project creation state
   const [name, setName] = useState('')
@@ -59,6 +64,40 @@ export default function OnboardingPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to create project')
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleOrgNameChange(value: string) {
+    setOrgName(value)
+    setOrgSlug(
+      value
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+    )
+  }
+
+  async function handleCreateOrg(e: React.FormEvent) {
+    e.preventDefault()
+    if (!orgName.trim() || !orgSlug.trim()) return
+    setOrgCreating(true)
+    try {
+      const { data, error } = await authClient.organization.create({
+        name: orgName.trim(),
+        slug: orgSlug.trim(),
+      })
+      if (error) {
+        toast.error(error.message ?? 'Failed to create workspace')
+        return
+      }
+      if (data) {
+        await authClient.organization.setActive({ organizationId: data.id })
+        setStep('project')
+      }
+    } catch {
+      toast.error('Something went wrong')
+    } finally {
+      setOrgCreating(false)
     }
   }
 
@@ -112,13 +151,13 @@ export default function OnboardingPage() {
           <div>
             <h1 className="text-xl font-semibold">Create your workspace</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Each workspace is a Clerk organization that isolates your projects.
+              Each workspace isolates your projects and team members.
             </p>
           </div>
-          {orgCount >= 1 ? (
+          {orgCount >= 1 && activeOrg ? (
             <div className="space-y-4">
               <p className="text-sm">
-                You already have a workspace: <strong>{organization?.name}</strong>
+                You already have a workspace: <strong>{activeOrg.name}</strong>
               </p>
               <Button onClick={() => setStep('project')}>
                 Continue
@@ -126,17 +165,31 @@ export default function OnboardingPage() {
               </Button>
             </div>
           ) : (
-            <div className="flex justify-center">
-              <CreateOrganization
-                afterCreateOrganizationUrl="/onboarding"
-                appearance={{
-                  elements: {
-                    rootBox: 'w-full',
-                    card: 'shadow-none border',
-                  },
-                }}
-              />
-            </div>
+            <form onSubmit={handleCreateOrg} className="space-y-4 text-left">
+              <div className="space-y-1.5">
+                <Label htmlFor="orgName">Workspace name</Label>
+                <Input
+                  id="orgName"
+                  placeholder="My Company"
+                  value={orgName}
+                  onChange={(e) => handleOrgNameChange(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="orgSlug">Slug</Label>
+                <Input
+                  id="orgSlug"
+                  placeholder="my-company"
+                  value={orgSlug}
+                  onChange={(e) => setOrgSlug(e.target.value)}
+                  className="font-mono text-sm"
+                />
+              </div>
+              <Button type="submit" disabled={orgCreating || !orgName || !orgSlug} className="w-full">
+                {orgCreating ? 'Creating...' : 'Create workspace'}
+              </Button>
+            </form>
           )}
         </div>
       )}

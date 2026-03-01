@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { isAuthenticated } from '@/lib/auth-server'
 import { DeploymentProvider } from '@/components/providers/DeploymentProvider'
 import { AdminNav } from '@/components/admin/AdminNav'
 import { AuthGate } from '@/components/admin/AuthGate'
@@ -9,10 +9,11 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId, orgId } = await auth()
+  const authed = await isAuthenticated()
 
-  if (!userId) redirect('/sign-in')
-  if (!orgId) redirect('/select-org')
+  if (!authed) redirect('/sign-in')
+  // Org check happens client-side via the active organization in the Better Auth session.
+  // If no org is active, AdminNav prompts the user to select one.
 
   return (
     <DeploymentProvider>

@@ -2,16 +2,12 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { ConvexReactClient } from 'convex/react'
-import { ConvexProviderWithClerk } from 'convex/react-clerk'
-import { ConvexHttpClient } from 'convex/browser'
-import { useAuth } from '@clerk/nextjs'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,20 +36,6 @@ interface DeploymentContextValue {
    * Null if test URL not configured.
    */
   testReactClient: ConvexReactClient | null
-  /**
-   * Returns an authenticated ConvexHttpClient for the test deployment.
-   * Used for cross-deployment operations (migration, ensure-project).
-   * Returns null if test URL not configured.
-   */
-  getAuthTestClient: () => Promise<ConvexHttpClient | null>
-  /**
-   * Returns authenticated HTTP clients for BOTH deployments.
-   * Used for data migration.
-   */
-  getAuthBothClients: () => Promise<{
-    live: ConvexHttpClient
-    test: ConvexHttpClient | null
-  }>
 }
 
 // ---------------------------------------------------------------------------
@@ -79,22 +61,26 @@ const ENV_TO_CONTENT: Record<DeploymentEnv, ContentEnv> = {
 // ---------------------------------------------------------------------------
 
 /**
- * DeploymentProvider — the Convex provider ALWAYS points to the LIVE deployment.
+ * DeploymentProvider — manages the live/test deployment toggle.
  *
- * Projects, section_registry, media, and folders are always queried from live.
- * Only content pages opt in to the test deployment by wrapping their content
- * area with a secondary ConvexProvider using `testReactClient`.
+ * The root ConvexBetterAuthProvider (in app/layout.tsx) always points to the
+ * LIVE deployment. When env=test, content areas wrap themselves in a secondary
+ * ConvexProvider using `testReactClient`.
+ *
+ * NOTE: cross-deployment HTTP client helpers (getAuthTestClient,
+ * getAuthBothClients) were removed during the Clerk → Better Auth migration.
+ * Better Auth sessions are per-deployment, so cross-deployment auth requires
+ * a shared JWKS or separate tokens. This will be addressed in a future phase.
  */
 export function DeploymentProvider({ children }: { children: ReactNode }) {
-  const { getToken, has } = useAuth()
-  const canSwitchEnv = has?.({ permission: 'org:beta_access:env_switch' }) ?? false
+  // TODO: replace Clerk permission check with Better Auth org permission
+  // once the permission system is fully wired up. For now, default to true
+  // when a test deployment URL is configured.
+  const canSwitchEnv = TEST_URL !== null
   const [env, setEnv] = useState<DeploymentEnv>('live')
 
   // Force live when the org doesn't have env switch permission
   const effectiveEnv = canSwitchEnv ? env : ('live' as const)
-
-  // Always-live reactive client (for the main ConvexProvider)
-  const liveClient = useMemo(() => new ConvexReactClient(LIVE_URL), [])
 
   // Test reactive client (for wrapping content areas when env=test)
   const testReactClient = useMemo(
@@ -104,33 +90,6 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
 
   const contentEnv = ENV_TO_CONTENT[effectiveEnv]
   const testAvailable = TEST_URL !== null
-
-  // HTTP clients for cross-deployment operations
-  const liveHttp = useMemo(() => new ConvexHttpClient(LIVE_URL), [])
-  const testHttp = useMemo(
-    () => (TEST_URL ? new ConvexHttpClient(TEST_URL) : null),
-    []
-  )
-
-  const authenticateClient = useCallback(
-    async (client: ConvexHttpClient) => {
-      const token = await getToken({ template: 'convex' })
-      if (token) client.setAuth(token)
-      return client
-    },
-    [getToken]
-  )
-
-  const getAuthTestClient = useCallback(async () => {
-    if (!testHttp) return null
-    return authenticateClient(testHttp)
-  }, [testHttp, authenticateClient])
-
-  const getAuthBothClients = useCallback(async () => {
-    const live = await authenticateClient(liveHttp)
-    const test = testHttp ? await authenticateClient(testHttp) : null
-    return { live, test }
-  }, [liveHttp, testHttp, authenticateClient])
 
   const value = useMemo<DeploymentContextValue>(
     () => ({
@@ -142,17 +101,13 @@ export function DeploymentProvider({ children }: { children: ReactNode }) {
       testAvailable,
       canSwitchEnv,
       testReactClient,
-      getAuthTestClient,
-      getAuthBothClients,
     }),
-    [effectiveEnv, contentEnv, testAvailable, canSwitchEnv, testReactClient, getAuthTestClient, getAuthBothClients]
+    [effectiveEnv, contentEnv, testAvailable, canSwitchEnv, testReactClient]
   )
 
   return (
     <DeploymentContext.Provider value={value}>
-      <ConvexProviderWithClerk client={liveClient} useAuth={useAuth}>
-        {children}
-      </ConvexProviderWithClerk>
+      {children}
     </DeploymentContext.Provider>
   )
 }
