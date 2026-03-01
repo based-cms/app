@@ -224,6 +224,23 @@ single-deployment setup.
 
 ---
 
+## Env Switching Gated Behind Org Permission
+
+**Decision**: The entire env switching feature (toggle, environment cards, test keys, data
+migration) is hidden behind the Clerk org permission `org:beta_access:env_switch`.
+
+**Why**:
+- Env switching is a beta/power-user feature — most orgs don't need it
+- Exposing test deployments to all orgs complicates onboarding and support
+- Clerk org permissions are the natural gating mechanism (per-org, no code changes to toggle)
+- `DeploymentProvider` forces `env = 'live'` at the data level when permission is missing,
+  so even programmatic access is blocked — not just UI hiding
+
+**How to enable**: Clerk Dashboard → Organizations → Permissions → create
+`org:beta_access:env_switch` → assign to the desired org's role(s).
+
+---
+
 ## Invite-Only Now, Self-Service Later
 
 **Decision**: Phase 1–5 are built invite-only — the developer creates all Clerk orgs manually.

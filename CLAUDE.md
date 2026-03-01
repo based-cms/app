@@ -115,6 +115,11 @@ present on every Convex table row. All mutations must verify `orgId` from the se
 In current admin flows, content can also be edited against an optional test Convex deployment
 (`NEXT_PUBLIC_CONVEX_TEST_URL`) while keeping `section_registry` environment-agnostic.
 
+**Feature-gated**: The env toggle, environment cards, test keys, and data migration UI are
+only visible when the Clerk org has the `org:beta_access:env_switch` permission. Without it,
+`DeploymentProvider` forces `env = 'live'` at the data level. Configure the permission in
+Clerk Dashboard → Organizations → Permissions.
+
 ### section_registry vs section_content
 These are separate tables intentionally. `section_registry` is written by the client NPM
 package on boot (schema definition). `section_content` is written by CMS users (actual data).
