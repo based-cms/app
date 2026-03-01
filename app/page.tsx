@@ -125,7 +125,7 @@ const FEATURES = [
   {
     num: '04',
     title: 'MULTI-TENANT',
-    desc: 'Each client is a Clerk Organization. One deployment serves every project. Data isolation is baked into every query.',
+    desc: 'Each client is an organization. One deployment serves every project. Data isolation is baked into every query.',
   },
   {
     num: '05',
@@ -419,7 +419,7 @@ export default function Home() {
 
       {/* ── Footer ──────────────────────────────────────────── */}
       <footer className="border-t border-[#1a1a1a] py-8 text-center text-xs text-[#2a2a2a]">
-        Based CMS &mdash; Next.js, Convex &amp; Clerk
+        Based CMS &mdash; Next.js, Convex &amp; BetterAuth
       </footer>
     </div>
   )

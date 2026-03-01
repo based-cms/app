@@ -1,5 +1,9 @@
+ignoredBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+
 onlyBuiltDependencies:
-  - '@clerk/shared'
+  - better-sqlite3
   - esbuild
   - msw
   - sharp

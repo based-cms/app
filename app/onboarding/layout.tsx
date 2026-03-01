@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { getSession } from '@/lib/auth-server'
 import { OnboardingProviders } from './providers'
 
 export default async function OnboardingLayout({
@@ -7,8 +7,8 @@ export default async function OnboardingLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  const session = await getSession()
+  if (!session) redirect('/sign-in')
 
   return <OnboardingProviders>{children}</OnboardingProviders>
 }

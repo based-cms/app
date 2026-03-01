@@ -1,39 +1,26 @@
-import { auth } from '@clerk/nextjs/server'
+import { getSession } from '@/lib/auth-server'
 import { NextResponse } from 'next/server'
 
 /**
- * Debug endpoint — shows the current Clerk auth state and JWT claims.
+ * Debug endpoint — shows the current BetterAuth auth state.
  * Visit /api/debug-token in the browser to inspect.
  * Remove this route before going to production.
  */
 export async function GET() {
-  const { userId, orgId, orgRole, getToken } = await auth()
+  const session = await getSession()
 
-  if (!userId) {
+  if (!session) {
     return NextResponse.json({ authenticated: false })
   }
 
-  // Get the raw Convex JWT to inspect its claims
-  const token = await getToken({ template: 'convex' })
-
-  let claims: Record<string, unknown> | null = null
-  if (token) {
-    try {
-      const payload = token.split('.')[1]
-      if (payload) {
-        claims = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Record<string, unknown>
-      }
-    } catch {
-      claims = { error: 'Failed to decode token' }
-    }
-  }
+  const orgId = (session.session as Record<string, unknown>)['activeOrganizationId'] as string | undefined
 
   return NextResponse.json({
     authenticated: true,
-    userId,
+    userId: session.user.id,
     orgId: orgId ?? null,
-    orgRole: orgRole ?? null,
-    convexTokenPresent: !!token,
-    convexTokenClaims: claims,
+    userName: session.user.name,
+    userEmail: session.user.email,
+    sessionId: session.session.id,
   })
 }

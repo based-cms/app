@@ -26,14 +26,12 @@ NEXT_PUBLIC_CONVEX_URL=https://<live-deployment>.convex.cloud
 NEXT_PUBLIC_CONVEX_TEST_URL=https://<test-deployment>.convex.cloud
 CONVEX_DEPLOYMENT=<deployment-name>
 
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/admin
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=<generate-with-openssl-rand-base64-32>
 ```
 
-R2 and Clerk issuer values are configured in Convex dashboard environment variables.
+R2 and BetterAuth JWKS values are configured in Convex dashboard environment variables.
 
 ## Key Routes
 

@@ -1,10 +1,10 @@
 export default {
   providers: [
     {
-      // Clerk Frontend API URL — set in .env.local as CLERK_FRONTEND_API_URL
-      // Find it: Clerk dashboard → your app → API Keys → Frontend API URL
-      // Example: https://flying-mule-67.clerk.accounts.dev
-      domain: process.env.CLERK_FRONTEND_API_URL,
+      // BetterAuth JWKS URL — the app URL where BetterAuth serves its JWKS endpoint.
+      // BetterAuth exposes JWKS at {baseURL}/api/auth/.well-known/jwks.json
+      // Set BETTER_AUTH_URL in .env.local to your app's URL.
+      domain: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000/api/auth',
       applicationID: 'convex',
     },
   ],
