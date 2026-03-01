@@ -6,8 +6,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { authClient } from '@/lib/auth-client'
-import { EnvToggle } from './EnvToggle'
-import { useDeployment } from '@/components/providers/DeploymentProvider'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, ChevronsUpDown, LogOut, User } from 'lucide-react'
+import { Check, ChevronsUpDown, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const projectTabs = [
@@ -42,8 +40,6 @@ export function AdminNav() {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated } = useConvexAuth()
-  const { canSwitchEnv } = useDeployment()
-
   // Better Auth org state
   const { data: activeOrg } = authClient.useActiveOrganization()
   const [orgs, setOrgs] = useState<Org[]>([])
@@ -227,12 +223,6 @@ export function AdminNav() {
                 </DropdownMenu>
               </div>
 
-              {canSwitchEnv && (
-                <>
-                  <Slash />
-                  <EnvToggle />
-                </>
-              )}
             </>
           )}
         </nav>
