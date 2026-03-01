@@ -26,7 +26,7 @@ export default function SignInPage() {
         const { error: signUpError } = await signUp.email({
           email,
           password,
-          name: name || email.split('@')[0] || 'User',
+          name: name || (email ? email.split('@')[0] : undefined) || 'User',
         })
         if (signUpError) {
           setError(signUpError.message ?? 'Sign up failed')

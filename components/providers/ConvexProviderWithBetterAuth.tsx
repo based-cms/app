@@ -4,15 +4,13 @@ import {
   ConvexProviderWithAuth,
   ConvexReactClient,
 } from 'convex/react'
-import { useCallback, useMemo, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { authClient, useSession } from '@/lib/auth-client'
 
 interface TokenCache {
   token: string
   expiry: number
 }
-
-let cachedToken: TokenCache | null = null
 
 /**
  * Custom useAuth hook for Convex integration with BetterAuth.
@@ -21,14 +19,16 @@ let cachedToken: TokenCache | null = null
  */
 function useBetterAuth() {
   const { data: session, isPending } = useSession()
+  const tokenCacheRef = useRef<TokenCache | null>(null)
 
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
       if (!session) return null
 
       // Return cached token if still valid and not forcing refresh
-      if (!forceRefreshToken && cachedToken && cachedToken.expiry > Date.now()) {
-        return cachedToken.token
+      const cached = tokenCacheRef.current
+      if (!forceRefreshToken && cached && cached.expiry > Date.now()) {
+        return cached.token
       }
 
       try {
@@ -36,11 +36,11 @@ function useBetterAuth() {
         const token = 'data' in result ? result.data?.token : undefined
         if (token) {
           // Cache for 4 minutes (tokens typically last 5 minutes)
-          cachedToken = { token, expiry: Date.now() + 4 * 60 * 1000 }
+          tokenCacheRef.current = { token, expiry: Date.now() + 4 * 60 * 1000 }
           return token
         }
       } catch {
-        cachedToken = null
+        tokenCacheRef.current = null
       }
       return null
     },
@@ -61,7 +61,7 @@ const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL!
 
 /**
  * Convex provider that uses BetterAuth for authentication.
- * Replaces ConvexProviderWithClerk.
+ * Drop-in replacement for ConvexProviderWithClerk.
  */
 export function ConvexProviderWithBetterAuth({
   children,

@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { ConvexProviderWithAuth } from 'convex/react'
 import { makeFunctionReference } from 'convex/server'
 import { useDeployment } from '@/components/providers/DeploymentProvider'
 import { authClient, useSession } from '@/lib/auth-client'
-import { useCallback, useMemo } from 'react'
 
 interface Props {
   /** Project data from the live deployment, used to create shadow on test */
@@ -23,26 +22,26 @@ interface TokenCache {
   expiry: number
 }
 
-let cachedToken: TokenCache | null = null
-
 function useBetterAuth() {
   const { data: session, isPending } = useSession()
+  const tokenCacheRef = useRef<TokenCache | null>(null)
 
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
       if (!session) return null
-      if (!forceRefreshToken && cachedToken && cachedToken.expiry > Date.now()) {
-        return cachedToken.token
+      const cached = tokenCacheRef.current
+      if (!forceRefreshToken && cached && cached.expiry > Date.now()) {
+        return cached.token
       }
       try {
         const result = await authClient.token()
         const token = 'data' in result ? result.data?.token : undefined
         if (token) {
-          cachedToken = { token, expiry: Date.now() + 4 * 60 * 1000 }
+          tokenCacheRef.current = { token, expiry: Date.now() + 4 * 60 * 1000 }
           return token
         }
       } catch {
-        cachedToken = null
+        tokenCacheRef.current = null
       }
       return null
     },
