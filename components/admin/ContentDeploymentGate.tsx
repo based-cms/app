@@ -35,7 +35,8 @@ function useBetterAuth() {
         return cachedToken.token
       }
       try {
-        const { token } = await authClient.token()
+        const result = await authClient.token()
+        const token = 'data' in result ? result.data?.token : undefined
         if (token) {
           cachedToken = { token, expiry: Date.now() + 4 * 60 * 1000 }
           return token

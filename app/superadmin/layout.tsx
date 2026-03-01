@@ -13,8 +13,8 @@ export default async function SuperadminLayout({
   const orgId = (session.session as Record<string, unknown>)['activeOrganizationId'] as string | undefined
   if (!orgId) redirect('/select-org')
 
-  // Check superadmin role — stored in user metadata or a custom field
-  const isSuperadmin = session.user.role === 'admin'
+  // Check superadmin role — stored in user role field (set to 'admin' for superadmins)
+  const isSuperadmin = (session.user as Record<string, unknown>).role === 'admin'
   if (!isSuperadmin) {
     redirect('/admin')
   }
