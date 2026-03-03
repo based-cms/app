@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
@@ -11,11 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Copy, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
+import { resolvePostAuthRoute, waitForActiveOrganization } from '@/lib/org-routing'
 type Step = 'org' | 'project' | 'keys' | 'done'
 
 export default function OnboardingPage() {
   const router = useRouter()
   const { data: activeOrg } = authClient.useActiveOrganization()
+  const convexActiveOrgId = useQuery(api.auth.getSessionOrganization)
 
   const [orgCount, setOrgCount] = useState(0)
   useEffect(() => {
@@ -44,6 +46,7 @@ export default function OnboardingPage() {
   const [projectId, setProjectId] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  const isConvexOrgReady = !!activeOrg?.id && convexActiveOrgId === activeOrg.id
 
   function handleNameChange(value: string) {
     setName(value)
@@ -53,6 +56,10 @@ export default function OnboardingPage() {
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !slug.trim()) return
+    if (!isConvexOrgReady) {
+      toast.error('Workspace is still activating. Please try again in a second.')
+      return
+    }
     setLoading(true)
     try {
       const pid = await createProject({ name: name.trim(), slug: slug.trim() })
@@ -91,7 +98,21 @@ export default function OnboardingPage() {
         return
       }
       if (data) {
-        await authClient.organization.setActive({ organizationId: data.id })
+        const { error: setActiveError } = await authClient.organization.setActive({
+          organizationId: data.id,
+        })
+        if (setActiveError) {
+          toast.error(setActiveError.message ?? 'Failed to activate workspace')
+          return
+        }
+
+        const synced = await waitForActiveOrganization(data.id)
+        if (!synced) {
+          const destination = await resolvePostAuthRoute()
+          router.push(destination)
+          return
+        }
+
         setStep('project')
       }
     } catch {
@@ -116,6 +137,7 @@ export default function OnboardingPage() {
   const fullKey = token
     ? `bcms_live-${btoa(`${deploymentName}.${token}`)}`
     : ''
+  const envSnippet = `BASED-CMS-SLUG=${slug}\nBASED-CMS-KEY=${fullKey}`
 
   return (
     <div className="space-y-8 py-10">
@@ -227,9 +249,18 @@ export default function OnboardingPage() {
                 Public identifier — used as <code>BASED-CMS-SLUG</code> in your client app.
               </p>
             </div>
-            <Button type="submit" disabled={loading || !name || !slug} className="w-full">
+            <Button
+              type="submit"
+              disabled={loading || !name || !slug || !isConvexOrgReady}
+              className="w-full"
+            >
               {loading ? 'Creating...' : 'Create project'}
             </Button>
+            {!isConvexOrgReady && (
+              <p className="text-xs text-muted-foreground">
+                Finalizing workspace activation...
+              </p>
+            )}
           </form>
         </div>
       )}
@@ -286,6 +317,30 @@ export default function OnboardingPage() {
               <p className="text-xs text-muted-foreground">
                 Keep this secret. Do not prefix with <code>NEXT_PUBLIC_</code>.
               </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Label>.env.local snippet</Label>
+                <Badge variant="secondary" className="text-[10px]">one-click</Badge>
+              </div>
+              <div className="flex items-start gap-2">
+                <code className="flex-1 whitespace-pre rounded-lg border bg-muted/50 px-3 py-2 font-mono text-xs">
+                  {envSnippet}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(envSnippet, '.env snippet')}
+                >
+                  {copied === '.env snippet' ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 

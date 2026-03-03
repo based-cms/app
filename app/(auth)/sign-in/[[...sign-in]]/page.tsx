@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { resolvePostAuthRoute } from '@/lib/org-routing'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function SignInPage() {
         const { error } = await authClient.signUp.email({
           email,
           password,
-          name: name || email.split('@')[0],
+          name: name || email.split('@')[0] || 'user',
         })
         if (error) {
           toast.error(error.message ?? 'Sign up failed')
@@ -42,7 +43,8 @@ export default function SignInPage() {
           return
         }
       }
-      router.push('/admin')
+      const destination = await resolvePostAuthRoute()
+      router.push(destination)
     } catch {
       toast.error('Something went wrong')
     } finally {

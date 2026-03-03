@@ -15,7 +15,8 @@ export default async function SuperadminLayout({
   // the Better Auth JWT. The getCurrentUser query returns the auth user record
   // which has a `role` field.
   const user = await fetchAuthQuery(api.auth.getCurrentUser)
-  const isSuperadmin = user?.role === 'superadmin'
+  const isSuperadmin =
+    (user as Record<string, unknown> | null)?.role === 'superadmin'
   if (!isSuperadmin) {
     redirect('/admin')
   }

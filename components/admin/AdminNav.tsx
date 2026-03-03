@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { authClient } from '@/lib/auth-client'
+import { resolvePostAuthRoute, waitForActiveOrganization } from '@/lib/org-routing'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +61,7 @@ export function AdminNav() {
   // Skip Convex queries until the auth handshake completes
   const projects = useQuery(
     api.projects.list,
-    isAuthenticated ? {} : 'skip'
+    isAuthenticated && !!activeOrg?.id ? {} : 'skip'
   )
 
   // Derive current project from the list — avoids a separate query and
@@ -85,7 +86,18 @@ export function AdminNav() {
   }
 
   async function switchOrg(orgId: string) {
-    await authClient.organization.setActive({ organizationId: orgId })
+    const { error } = await authClient.organization.setActive({
+      organizationId: orgId,
+    })
+    if (error) return
+
+    const synced = await waitForActiveOrganization(orgId)
+    if (!synced) {
+      const destination = await resolvePostAuthRoute()
+      router.push(destination)
+      return
+    }
+
     router.push('/admin')
   }
 

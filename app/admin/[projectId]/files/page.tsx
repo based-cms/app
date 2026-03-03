@@ -458,7 +458,7 @@ export default function FilesPage({
   async function handleDeleteFile(mediaId: Id<'media'>, r2Key: string) {
     try {
       await removeMedia({ mediaId })
-      await deleteFromR2({ r2Key })
+      await deleteFromR2({ projectId: pid, r2Key })
       toast.success('File deleted')
     } catch {
       toast.error('Failed to delete file')

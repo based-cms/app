@@ -74,3 +74,16 @@ export const getCurrentUser = query({
     return authComponent.getAuthUser(ctx)
   },
 })
+
+// Exposes the active organization claim as seen by Convex JWT auth.
+// Used by onboarding to avoid creating org-scoped records before token propagation.
+export const getSessionOrganization = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    return (
+      (identity as Record<string, unknown>).activeOrganizationId as string | null
+    ) ?? null
+  },
+})

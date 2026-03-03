@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Check } from 'lucide-react'
+import { resolvePostAuthRoute, waitForActiveOrganization } from '@/lib/org-routing'
 
 interface Org {
   id: string
@@ -40,6 +41,14 @@ export default function SelectOrgPage() {
       toast.error('Failed to select organization')
       return
     }
+
+    const synced = await waitForActiveOrganization(orgId)
+    if (!synced) {
+      const destination = await resolvePostAuthRoute()
+      router.push(destination)
+      return
+    }
+
     router.push('/admin')
   }
 
@@ -57,9 +66,21 @@ export default function SelectOrgPage() {
         return
       }
       if (data) {
-        await authClient.organization.setActive({
+        const { error: setActiveError } = await authClient.organization.setActive({
           organizationId: data.id,
         })
+        if (setActiveError) {
+          toast.error(setActiveError.message ?? 'Failed to activate workspace')
+          return
+        }
+
+        const synced = await waitForActiveOrganization(data.id)
+        if (!synced) {
+          const destination = await resolvePostAuthRoute()
+          router.push(destination)
+          return
+        }
+
         router.push('/admin')
       }
     } catch {
