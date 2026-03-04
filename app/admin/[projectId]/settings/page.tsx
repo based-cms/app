@@ -32,7 +32,7 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL!
+const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL ?? ''
 
 function getDeploymentName(url: string): string {
   try {
@@ -106,10 +106,12 @@ export default function SettingsPage({
 
   const deploymentName = useMemo(() => getDeploymentName(CONVEX_URL), [])
 
+  const registrationToken = useQuery(api.projects.getRegistrationToken, { projectId: pid })
+
   const apiKey = useMemo(() => {
-    if (!project?.registrationToken) return null
-    return buildKey(deploymentName, project.registrationToken)
-  }, [deploymentName, project?.registrationToken])
+    if (!registrationToken) return null
+    return buildKey(deploymentName, registrationToken)
+  }, [deploymentName, registrationToken])
 
   async function handleGenerateToken() {
     setGenerating(true)

@@ -64,7 +64,6 @@ export default function SuperadminPage() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Slug</TableHead>
-                      <TableHead>Token</TableHead>
                       <TableHead className="text-right">ID</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -73,15 +72,6 @@ export default function SuperadminPage() {
                       <TableRow key={p._id}>
                         <TableCell className="font-medium">{p.name}</TableCell>
                         <TableCell className="font-mono text-xs">{p.slug}</TableCell>
-                        <TableCell>
-                          {p.registrationToken ? (
-                            <Badge variant="outline" className="text-[10px]">
-                              configured
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">none</span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-right font-mono text-[10px] text-muted-foreground">
                           {p._id}
                         </TableCell>
