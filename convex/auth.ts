@@ -43,7 +43,6 @@ export const createAuthOptions = (
         definePayload: ({ user, session }) => ({
           name: user.name,
           email: user.email,
-          role: user.role,
           sessionId: session.id,
           // Org isolation: include the active org in the Convex JWT so that
           // ctx.auth.getUserIdentity() can read it in queries/mutations.

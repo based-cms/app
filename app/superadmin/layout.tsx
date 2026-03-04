@@ -19,12 +19,8 @@ export default async function SuperadminLayout({
   const authed = await isAuthenticated()
   if (!authed) redirect('/sign-in')
 
-  // Check superadmin status via Convex query — the user's role is included in
-  // the Better Auth JWT. The getCurrentUser query returns the auth user record
-  // which has a `role` field.
-  const user = await fetchAuthQuery(api.auth.getCurrentUser)
-  const isSuperadmin =
-    (user as Record<string, unknown> | null)?.role === 'superadmin'
+  // Check superadmin status via the allowlist table (email-based)
+  const isSuperadmin = await fetchAuthQuery(api.superadmins.isSuperadmin)
   if (!isSuperadmin) {
     redirect('/admin')
   }

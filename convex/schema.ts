@@ -58,6 +58,12 @@ export default defineSchema({
     .index('by_r2_key', ['r2Key'])
     .index('by_project_folder', ['projectId', 'folder']),
 
+  // Superadmin allowlist — email-based, checked at query time
+  superadmins: defineTable({
+    email: v.string(),
+    addedAt: v.number(),
+  }).index('by_email', ['email']),
+
   // Virtual folder hierarchy — leaf name + full path + parent path
   folders: defineTable({
     orgId: v.string(),

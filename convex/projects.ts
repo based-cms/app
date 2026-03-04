@@ -112,9 +112,14 @@ export const listAll = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return []
 
-    // Better Auth JWT includes `role` from the user record (see convex/auth.ts definePayload)
-    const role = (identity as Record<string, unknown>)['role'] as string | undefined
-    if (role !== 'superadmin') return []
+    // Check superadmin status via allowlist table (email-based)
+    const email = identity.email
+    if (!email) return []
+    const entry = await ctx.db
+      .query('superadmins')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .unique()
+    if (!entry) return []
 
     return ctx.db.query('projects').collect()
   },
