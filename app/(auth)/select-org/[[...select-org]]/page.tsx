@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
@@ -171,11 +172,13 @@ export default function SelectOrgPage() {
                     className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-accent"
                   >
                     {org.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={org.logo}
-                        alt=""
+                        alt={`${org.name} organization logo`}
+                        width={32}
+                        height={32}
                         className="h-8 w-8 shrink-0 rounded"
+                        unoptimized
                       />
                     ) : (
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted text-xs font-bold">

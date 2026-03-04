@@ -3,6 +3,7 @@
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Plus, ArrowUpRight, Sparkles } from 'lucide-react'
@@ -123,11 +124,13 @@ export default function AdminPage() {
                     }}
                   />
                   {project.faviconUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={project.faviconUrl}
-                      alt=""
+                      alt={`${project.name} favicon`}
+                      width={20}
+                      height={20}
                       className="h-5 w-5 rounded object-cover"
+                      unoptimized
                     />
                   ) : (
                     <span className="text-xs font-bold text-muted-foreground">

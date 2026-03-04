@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { useQuery, useAction, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
@@ -278,11 +279,13 @@ export function MediaPicker({
                     {/* Preview */}
                     <div className="flex h-24 items-center justify-center bg-muted">
                       {file.mimeType.startsWith('image/') ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={file.url}
-                          alt={file.filename}
+                          alt={`Preview of ${file.filename}`}
+                          width={48}
+                          height={48}
                           className="h-full w-full object-cover"
+                          unoptimized
                         />
                       ) : file.mimeType.startsWith('video/') ? (
                         <Film className="h-8 w-8 text-muted-foreground" />

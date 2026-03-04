@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import Image from 'next/image'
 import { Id } from '@/convex/_generated/dataModel'
 import { MediaPicker } from './MediaPicker'
 import { FileIcon, Film } from 'lucide-react'
@@ -78,11 +79,13 @@ export function DynamicFieldRenderer({
         </div>
         {/* Type-appropriate preview */}
         {url && def.type === 'image' && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={url}
-            alt=""
+            alt={`${label} image preview`}
+            width={96}
+            height={96}
             className="mt-2 h-24 w-24 rounded-md object-cover"
+            unoptimized
           />
         )}
         {url && def.type === 'video' && (

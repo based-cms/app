@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useAction } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
+import Image from 'next/image'
 import { use, useRef, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -191,11 +192,13 @@ function FileCard({
     <div className="group relative overflow-hidden rounded-lg border bg-card">
       <div className="flex h-32 items-center justify-center bg-muted">
         {isImage(file.mimeType) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={file.url}
-            alt={file.filename}
+            alt={`Preview of ${file.filename}`}
+            width={48}
+            height={48}
             className="h-full w-full object-cover"
+            unoptimized
           />
         ) : (
           <FileIcon className="h-8 w-8 text-muted-foreground" />
@@ -620,11 +623,13 @@ export default function FilesPage({
                 <div className="rounded-lg border bg-card p-2">
                   <div className="mb-2 flex h-16 items-center justify-center rounded bg-muted">
                     {isImage(file.mimeType) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={file.url}
-                        alt={file.filename}
+                        alt={`Thumbnail of ${file.filename}`}
+                        width={48}
+                        height={48}
                         className="h-full w-full rounded object-cover"
+                        unoptimized
                       />
                     ) : (
                       <FileIcon className="h-6 w-6 text-muted-foreground" />

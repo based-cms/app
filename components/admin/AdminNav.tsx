@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
@@ -151,11 +152,13 @@ export function AdminNav() {
                         className="flex items-center gap-2.5"
                       >
                         {org.logo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={org.logo}
-                            alt=""
+                            alt={`${org.name} organization logo`}
+                            width={20}
+                            height={20}
                             className="h-5 w-5 shrink-0 rounded"
+                            unoptimized
                           />
                         ) : (
                           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold">
@@ -185,11 +188,13 @@ export function AdminNav() {
                   className="flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-[13px] font-medium transition-colors hover:bg-accent"
                 >
                   {project?.faviconUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={project.faviconUrl}
-                      alt=""
+                      alt={`${project.name} favicon`}
+                      width={16}
+                      height={16}
                       className="h-4 w-4 shrink-0 rounded"
+                      unoptimized
                     />
                   )}
                   <span className="max-w-[180px] truncate">
@@ -208,11 +213,13 @@ export function AdminNav() {
                           className="flex items-center gap-2.5"
                         >
                           {p.faviconUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={p.faviconUrl}
-                              alt=""
+                              alt={`${p.name} favicon`}
+                              width={16}
+                              height={16}
                               className="h-4 w-4 shrink-0 rounded"
+                              unoptimized
                             />
                           ) : (
                             <span
