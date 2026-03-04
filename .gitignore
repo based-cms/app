@@ -44,6 +44,10 @@ pnpm-debug.log*
 my-test-app/
 my-cms-app/
 
+# Planning / audit (never commit)
+.TODO.md
+.PLAN.md
+
 # Changesets
 # (keep .changeset/config.json, ignore generated changelogs)
 CHANGELOG.md
