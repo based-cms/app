@@ -3,6 +3,7 @@ import { query, mutation, action } from './_generated/server'
 import { R2 } from '@convex-dev/r2'
 import { api, components } from './_generated/api'
 import { requireOrgId } from './lib/orgGuard'
+import { sanitizeFilename, validateMimeType, validateHttpsUrl } from './lib/validators'
 
 const r2 = new R2(components.r2)
 
@@ -65,13 +66,17 @@ export const create = mutation({
       throw new Error('Project not found')
     }
 
+    const safeUrl = validateHttpsUrl(url)
+    const safeMime = validateMimeType(mimeType)
+    const safeFilename = sanitizeFilename(filename)
+
     return ctx.db.insert('media', {
       orgId,
       projectId,
       r2Key,
-      url,
-      filename,
-      mimeType,
+      url: safeUrl,
+      filename: safeFilename,
+      mimeType: safeMime,
       size,
       uploadedAt: Date.now(),
       folder: folder ?? '',
@@ -124,13 +129,17 @@ export const generateUploadUrl = action({
     filename: v.string(),
     mimeType: v.string(),
   },
-  handler: async (ctx, { projectId, filename }): Promise<{ uploadUrl: string; r2Key: string; publicUrl: string }> => {
+  handler: async (ctx, { projectId, filename, mimeType }): Promise<{ uploadUrl: string; r2Key: string; publicUrl: string }> => {
+    // Validate inputs before issuing presigned URL
+    const safeFilename = sanitizeFilename(filename)
+    validateMimeType(mimeType)
+
     // Resolve slug server-side with org validation before issuing upload URLs.
     const project = await ctx.runQuery(api.projects.get, { projectId })
     if (!project) throw new Error('Project not found')
     if (!project.slug) throw new Error('Project has no slug configured')
 
-    const r2Key = `${project.slug}/${Date.now()}-${filename}`
+    const r2Key = `${project.slug}/${Date.now()}-${safeFilename}`
     const { url: uploadUrl } = await r2.generateUploadUrl(r2Key)
 
     // Public URL is served from the r2.dev CDN (or custom domain), not from the

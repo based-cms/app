@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
 import { requireOrgId } from './lib/orgGuard'
 import { rateLimit } from './lib/rateLimits'
+import { validateSectionType, validateName, validateFieldsSchema } from './lib/validators'
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,10 @@ export const upsert = mutation({
   },
   handler: async (ctx, { projectId, sectionType, label, fieldsSchema }) => {
     const orgId = await requireOrgId(ctx)
+    const safeSectionType = validateSectionType(sectionType)
+    const safeLabel = validateName(label)
+    const safeFieldsSchema = validateFieldsSchema(fieldsSchema)
+
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) {
       throw new Error('Project not found')
@@ -64,19 +69,19 @@ export const upsert = mutation({
     const existing = await ctx.db
       .query('section_registry')
       .withIndex('by_project_type', (q) =>
-        q.eq('projectId', projectId).eq('sectionType', sectionType)
+        q.eq('projectId', projectId).eq('sectionType', safeSectionType)
       )
       .unique()
 
     if (existing) {
-      await ctx.db.patch(existing._id, { label, fieldsSchema, archivedAt: undefined })
+      await ctx.db.patch(existing._id, { label: safeLabel, fieldsSchema: safeFieldsSchema, archivedAt: undefined })
     } else {
       await ctx.db.insert('section_registry', {
         orgId,
         projectId,
-        sectionType,
-        label,
-        fieldsSchema,
+        sectionType: safeSectionType,
+        label: safeLabel,
+        fieldsSchema: safeFieldsSchema,
       })
     }
   },
@@ -97,6 +102,9 @@ export const upsertPublic = mutation({
   },
   handler: async (ctx, { registrationToken, sectionType, label, fieldsSchema }) => {
     await rateLimit(ctx, { name: 'tokenAuth', key: registrationToken })
+    const safeSectionType = validateSectionType(sectionType)
+    const safeLabel = validateName(label)
+    const safeFieldsSchema = validateFieldsSchema(fieldsSchema)
 
     const project = await ctx.db
       .query('projects')
@@ -107,19 +115,19 @@ export const upsertPublic = mutation({
     const existing = await ctx.db
       .query('section_registry')
       .withIndex('by_project_type', (q) =>
-        q.eq('projectId', project._id).eq('sectionType', sectionType)
+        q.eq('projectId', project._id).eq('sectionType', safeSectionType)
       )
       .unique()
 
     if (existing) {
-      await ctx.db.patch(existing._id, { label, fieldsSchema, archivedAt: undefined })
+      await ctx.db.patch(existing._id, { label: safeLabel, fieldsSchema: safeFieldsSchema, archivedAt: undefined })
     } else {
       await ctx.db.insert('section_registry', {
         orgId: project.orgId,
         projectId: project._id,
-        sectionType,
-        label,
-        fieldsSchema,
+        sectionType: safeSectionType,
+        label: safeLabel,
+        fieldsSchema: safeFieldsSchema,
       })
     }
   },
@@ -152,10 +160,17 @@ export const syncPublic = mutation({
       .unique()
     if (!project) throw new Error('Invalid registration token')
 
-    const activeSectionTypes = new Set(sections.map((s) => s.sectionType))
+    // Validate all sections upfront
+    const validatedSections = sections.map((s) => ({
+      sectionType: validateSectionType(s.sectionType),
+      label: validateName(s.label),
+      fieldsSchema: validateFieldsSchema(s.fieldsSchema),
+    }))
+
+    const activeSectionTypes = new Set(validatedSections.map((s) => s.sectionType))
 
     // Upsert each provided section
-    for (const section of sections) {
+    for (const section of validatedSections) {
       const existing = await ctx.db
         .query('section_registry')
         .withIndex('by_project_type', (q) =>

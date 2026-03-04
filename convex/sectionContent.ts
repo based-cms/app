@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
 import { requireOrgId } from './lib/orgGuard'
+import { validateItems } from './lib/validateItems'
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,17 @@ export const setItems = mutation({
       throw new Error('Project not found')
     }
 
+    // Validate items against the section's fieldsSchema
+    const registry = await ctx.db
+      .query('section_registry')
+      .withIndex('by_project_type', (q) =>
+        q.eq('projectId', projectId).eq('sectionType', sectionType)
+      )
+      .unique()
+    const validatedItems = registry
+      ? validateItems(items, registry.fieldsSchema)
+      : items
+
     const existing = await ctx.db
       .query('section_content')
       .withIndex('by_project_type_env', (q) =>
@@ -126,14 +138,14 @@ export const setItems = mutation({
       .unique()
 
     if (existing) {
-      await ctx.db.patch(existing._id, { items })
+      await ctx.db.patch(existing._id, { items: validatedItems })
     } else {
       await ctx.db.insert('section_content', {
         orgId,
         projectId,
         sectionType,
         env,
-        items,
+        items: validatedItems,
       })
     }
   },
@@ -160,6 +172,17 @@ export const setItemsBySlug = mutation({
       throw new Error('Project not found')
     }
 
+    // Validate items against the section's fieldsSchema
+    const registry = await ctx.db
+      .query('section_registry')
+      .withIndex('by_project_type', (q) =>
+        q.eq('projectId', project._id).eq('sectionType', sectionType)
+      )
+      .unique()
+    const validatedItems = registry
+      ? validateItems(items, registry.fieldsSchema)
+      : items
+
     const existing = await ctx.db
       .query('section_content')
       .withIndex('by_project_type_env', (q) =>
@@ -171,14 +194,14 @@ export const setItemsBySlug = mutation({
       .unique()
 
     if (existing) {
-      await ctx.db.patch(existing._id, { items })
+      await ctx.db.patch(existing._id, { items: validatedItems })
     } else {
       await ctx.db.insert('section_content', {
         orgId,
         projectId: project._id,
         sectionType,
         env,
-        items,
+        items: validatedItems,
       })
     }
   },

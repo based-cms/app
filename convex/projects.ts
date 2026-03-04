@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation, internalQuery } from './_generated/server'
 import { requireOrgId } from './lib/orgGuard'
+import { validateSlug, validateName } from './lib/validators'
 import type { MutationCtx } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 
@@ -137,18 +138,20 @@ export const create = mutation({
   },
   handler: async (ctx, { name, slug, primaryColor, faviconUrl }) => {
     const orgId = await requireOrgId(ctx)
+    const safeName = validateName(name)
+    const safeSlug = validateSlug(slug)
 
     // Ensure slug is unique
     const existing = await ctx.db
       .query('projects')
-      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .withIndex('by_slug', (q) => q.eq('slug', safeSlug))
       .unique()
-    if (existing) throw new Error(`Slug "${slug}" is already taken`)
+    if (existing) throw new Error(`Slug "${safeSlug}" is already taken`)
 
     return ctx.db.insert('projects', {
       orgId,
-      name,
-      slug,
+      name: safeName,
+      slug: safeSlug,
       primaryColor: primaryColor ?? '#000000',
       faviconUrl: faviconUrl ?? '',
     })
@@ -171,6 +174,10 @@ export const update = mutation({
     if (!project || project.orgId !== orgId) {
       throw new Error('Project not found')
     }
+
+    // Validate inputs
+    if (fields.name !== undefined) validateName(fields.name)
+    if (fields.slug !== undefined) validateSlug(fields.slug)
 
     // Validate slug uniqueness if changing
     if (fields.slug !== undefined) {

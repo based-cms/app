@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
 import { requireOrgId } from './lib/orgGuard'
+import { validateFolderName } from './lib/validators'
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -49,10 +50,11 @@ export const create = mutation({
   },
   handler: async (ctx, { projectId, parentPath, name }) => {
     const orgId = await requireOrgId(ctx)
+    const safeName = validateFolderName(name)
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) throw new Error('Project not found')
 
-    const path = parentPath ? `${parentPath}/${name}` : name
+    const path = parentPath ? `${parentPath}/${safeName}` : safeName
 
     // Prevent duplicate sibling names
     const existing = await ctx.db
@@ -60,11 +62,11 @@ export const create = mutation({
       .withIndex('by_project_parent', (q) =>
         q.eq('projectId', projectId).eq('parentPath', parentPath)
       )
-      .filter((q) => q.eq(q.field('name'), name))
+      .filter((q) => q.eq(q.field('name'), safeName))
       .first()
     if (existing) throw new Error('A folder with that name already exists here')
 
-    return ctx.db.insert('folders', { orgId, projectId, name, path, parentPath })
+    return ctx.db.insert('folders', { orgId, projectId, name: safeName, path, parentPath })
   },
 })
 
@@ -76,11 +78,12 @@ export const rename = mutation({
   args: { folderId: v.id('folders'), name: v.string() },
   handler: async (ctx, { folderId, name }) => {
     const orgId = await requireOrgId(ctx)
+    const safeName = validateFolderName(name)
     const folder = await ctx.db.get(folderId)
     if (!folder || folder.orgId !== orgId) throw new Error('Folder not found')
 
     const oldPath = folder.path
-    const newPath = folder.parentPath ? `${folder.parentPath}/${name}` : name
+    const newPath = folder.parentPath ? `${folder.parentPath}/${safeName}` : safeName
 
     if (oldPath === newPath) return
 
@@ -90,12 +93,12 @@ export const rename = mutation({
       .withIndex('by_project_parent', (q) =>
         q.eq('projectId', folder.projectId).eq('parentPath', folder.parentPath)
       )
-      .filter((q) => q.eq(q.field('name'), name))
+      .filter((q) => q.eq(q.field('name'), safeName))
       .first()
     if (sibling) throw new Error('A folder with that name already exists here')
 
     // 1. Patch the folder itself
-    await ctx.db.patch(folderId, { name, path: newPath })
+    await ctx.db.patch(folderId, { name: safeName, path: newPath })
 
     // 2. Cascade to all descendant subfolders
     const allFolders = await ctx.db
