@@ -1,7 +1,15 @@
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { isAuthenticated, fetchAuthQuery } from '@/lib/auth-server'
 import { api } from '@/convex/_generated/api'
 import { SuperadminProviders } from './providers'
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default async function SuperadminLayout({
   children,

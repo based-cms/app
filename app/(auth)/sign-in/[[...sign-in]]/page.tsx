@@ -118,6 +118,21 @@ export default function SignInPage() {
             {isSignUp ? 'Sign in' : 'Sign up'}
           </button>
         </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+          <Link href="/terms" className="underline-offset-4 hover:underline">
+            Terms
+          </Link>
+          <Link href="/privacy" className="underline-offset-4 hover:underline">
+            Privacy
+          </Link>
+          <Link href="/imprint" className="underline-offset-4 hover:underline">
+            Imprint
+          </Link>
+          <Link href="/contact" className="underline-offset-4 hover:underline">
+            Contact
+          </Link>
+        </div>
       </div>
     </main>
   )

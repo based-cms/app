@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { AnimateIn } from '@/components/landing/AnimateIn'
+import { siteConfig, siteKeywords } from '@/lib/site'
 
 /* ═══════════════════════════════════════════════════════════
    Syntax highlighting — server-side, zero dependencies
@@ -170,6 +172,44 @@ const BETTER_WAY = [
   'Instant preview',
 ]
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: siteConfig.name,
+  url: siteConfig.url,
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: siteConfig.supportEmail,
+    },
+  ],
+}
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: siteConfig.name,
+  url: siteConfig.url,
+  description: siteConfig.description,
+}
+
+export const metadata: Metadata = {
+  title: 'Realtime Type-Safe CMS for Developers',
+  description:
+    'Based CMS is a schema-first, realtime headless CMS for developers using Next.js and TypeScript. Build faster with typed content and multi-tenant architecture.',
+  keywords: [...siteKeywords],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Based CMS | Realtime Type-Safe CMS for Developers',
+    description:
+      'Define content schemas in TypeScript and ship realtime updates without codegen or custom APIs.',
+    url: '/',
+  },
+}
+
 /* ═══════════════════════════════════════════════════════════
    Page
    ═══════════════════════════════════════════════════════════ */
@@ -177,6 +217,15 @@ const BETTER_WAY = [
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#050505] text-[#e8e8e8] selection:bg-[#e8aa3a]/20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+
       {/* ── Nav ─────────────────────────────────────────────── */}
       <nav className="fixed top-0 z-50 w-full bg-[#050505]/60 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-[1100px] items-center justify-between px-6 md:px-10">
@@ -189,7 +238,13 @@ export default function Home() {
             </span>
             Based CMS
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
+            <Link
+              href="/faq"
+              className="text-sm text-[#666] transition-colors hover:text-[#e8e8e8]"
+            >
+              FAQ
+            </Link>
             <Link
               href="/sign-in"
               className="text-sm text-[#666] transition-colors hover:text-[#e8e8e8]"
@@ -223,9 +278,10 @@ export default function Home() {
           </h1>
 
           <p className="animate-fade-in-up animate-duration-700 animate-delay-200 mt-10 max-w-md text-[15px] leading-[1.7] text-[#666] md:mt-14 md:text-base">
-            Define your content sections in TypeScript. The CMS reads your
-            schema and generates the editing UI. Types flow end-to-end — from
-            definition to hook. No REST API. No codegen. No deploys.
+            Based CMS is a developer-first headless CMS for Next.js and
+            TypeScript teams. Define sections once, get realtime content with
+            inferred types, and ship multi-tenant projects without building a
+            custom content API.
           </p>
 
           <div className="animate-fade-in-up animate-duration-700 animate-delay-300 mt-8 flex items-center gap-2 font-mono text-sm text-[#555]">
@@ -413,13 +469,45 @@ export default function Home() {
             >
               Get started
             </Link>
+            <div className="mt-6 flex items-center justify-center gap-4 text-xs text-[#555]">
+              <Link href="/faq" className="transition-colors hover:text-[#e8aa3a]">
+                Read FAQ
+              </Link>
+              <Link href="/privacy" className="transition-colors hover:text-[#e8aa3a]">
+                Privacy
+              </Link>
+              <Link href="/terms" className="transition-colors hover:text-[#e8aa3a]">
+                Terms
+              </Link>
+            </div>
           </AnimateIn>
         </div>
       </section>
 
       {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="border-t border-[#1a1a1a] py-8 text-center text-xs text-[#2a2a2a]">
-        Based CMS &mdash; Next.js, Convex &amp; Better Auth
+      <footer className="border-t border-[#1a1a1a] py-8">
+        <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-4 px-6 md:px-10">
+          <p className="text-xs text-[#2a2a2a]">
+            Based CMS &mdash; Next.js, Convex &amp; Better Auth
+          </p>
+          <nav className="flex flex-wrap items-center gap-3 text-xs text-[#666]">
+            <Link href="/imprint" className="transition-colors hover:text-[#e8aa3a]">
+              Imprint
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-[#e8aa3a]">
+              Terms
+            </Link>
+            <Link href="/privacy" className="transition-colors hover:text-[#e8aa3a]">
+              Privacy
+            </Link>
+            <Link href="/contact" className="transition-colors hover:text-[#e8aa3a]">
+              Contact
+            </Link>
+            <Link href="/faq" className="transition-colors hover:text-[#e8aa3a]">
+              FAQ
+            </Link>
+          </nav>
+        </div>
       </footer>
     </div>
   )
