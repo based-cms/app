@@ -25,16 +25,33 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
 // Better Auth options (shared between runtime and schema generation)
 // ---------------------------------------------------------------------------
 
-const siteUrl = process.env.SITE_URL ?? 'http://localhost:3000'
+const siteUrl = process.env.SITE_URL
+if (!siteUrl) {
+  throw new Error(
+    'SITE_URL environment variable is required. ' +
+    'Set it to your app\'s public URL (e.g. https://cms.example.com).'
+  )
+}
 
 export const createAuthOptions = (
   ctx: GenericCtx<DataModel>
 ): BetterAuthOptions => ({
   baseURL: siteUrl,
+  trustedOrigins: [siteUrl],
   database: authComponent.adapter(ctx),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: true,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
+  },
+  advanced: {
+    cookiePrefix: 'bcms',
+    defaultCookieAttributes: {
+      httpOnly: true,
+      secure: siteUrl.startsWith('https://'),
+      sameSite: 'lax' as const,
+    },
   },
   plugins: [
     convex({
