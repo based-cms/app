@@ -1,19 +1,20 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useConvexAuth, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
-import { UserButton, useOrganization, useOrganizationList } from '@clerk/nextjs'
-import { EnvToggle } from './EnvToggle'
-import { useDeployment } from '@/components/providers/DeploymentProvider'
+import { authClient } from '@/lib/auth-client'
+import { resolvePostAuthRoute, waitForActiveOrganization } from '@/lib/org-routing'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const projectTabs = [
@@ -23,6 +24,13 @@ const projectTabs = [
   { key: 'settings', label: 'Settings', path: '/settings' },
 ] as const
 
+interface Org {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+}
+
 function Slash() {
   return (
     <span className="mx-1.5 text-xl font-extralight text-border select-none">/</span>
@@ -31,21 +39,29 @@ function Slash() {
 
 export function AdminNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const { isAuthenticated } = useConvexAuth()
-  const { organization } = useOrganization()
-  const { canSwitchEnv } = useDeployment()
-  const { userMemberships, setActive } = useOrganizationList({
-    userMemberships: { infinite: true },
-  })
+  // Better Auth org state
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const [orgs, setOrgs] = useState<Org[]>([])
+
+  useEffect(() => {
+    void authClient.organization.list().then(({ data }) => {
+      setOrgs(data ?? [])
+    })
+  }, [])
+
+  // Better Auth session for user info
+  const { data: session } = authClient.useSession()
 
   // Extract projectId from URL: /admin/:projectId/...
   const segments = pathname.split('/')
   const projectId = segments.length >= 3 && segments[2] ? segments[2] : null
 
-  // Skip Convex queries until the Clerk→Convex auth handshake completes
+  // Skip Convex queries until the auth handshake completes
   const projects = useQuery(
     api.projects.list,
-    isAuthenticated ? {} : 'skip'
+    isAuthenticated && !!activeOrg?.id ? {} : 'skip'
   )
 
   // Derive current project from the list — avoids a separate query and
@@ -69,7 +85,29 @@ export function AdminNav() {
     }
   }
 
-  const orgs = userMemberships?.data ?? []
+  async function switchOrg(orgId: string) {
+    const { error } = await authClient.organization.setActive({
+      organizationId: orgId,
+    })
+    if (error) return
+
+    const synced = await waitForActiveOrganization(orgId)
+    if (!synced) {
+      const destination = await resolvePostAuthRoute()
+      router.push(destination)
+      return
+    }
+
+    router.push('/admin')
+  }
+
+  async function handleSignOut() {
+    await authClient.signOut()
+    router.push('/sign-in')
+  }
+
+  const userName = session?.user?.name ?? session?.user?.email ?? ''
+  const userInitial = userName?.[0]?.toUpperCase() ?? '?'
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
@@ -95,30 +133,27 @@ export function AdminNav() {
               href="/admin"
               className="rounded-md px-2 py-1 text-[13px] font-medium transition-colors hover:bg-accent"
             >
-              {organization?.name ?? '\u2026'}
+              {activeOrg?.name ?? '\u2026'}
             </Link>
             <DropdownMenu>
                 <DropdownMenuTrigger className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground outline-none">
                   <ChevronsUpDown className="h-3.5 w-3.5" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64">
-                  {orgs.map((mem) => {
-                    const org = mem.organization
-                    const isCurrent = org.id === organization?.id
+                  {orgs.map((org) => {
+                    const isCurrent = org.id === activeOrg?.id
                     return (
                       <DropdownMenuItem
                         key={org.id}
                         onClick={() => {
-                          if (!isCurrent && setActive) {
-                            void setActive({ organization: org.id })
-                          }
+                          if (!isCurrent) void switchOrg(org.id)
                         }}
                         className="flex items-center gap-2.5"
                       >
-                        {org.imageUrl ? (
+                        {org.logo ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={org.imageUrl}
+                            src={org.logo}
                             alt=""
                             className="h-5 w-5 shrink-0 rounded"
                           />
@@ -200,19 +235,28 @@ export function AdminNav() {
                 </DropdownMenu>
               </div>
 
-              {canSwitchEnv && (
-                <>
-                  <Slash />
-                  <EnvToggle />
-                </>
-              )}
             </>
           )}
         </nav>
 
-        {/* Right: user only */}
+        {/* Right: user menu */}
         <div className="ml-auto">
-          <UserButton afterSignOutUrl="/sign-in" />
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold outline-none transition-colors hover:bg-accent">
+              {userInitial}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5">
+                <p className="truncate text-[13px] font-medium">{session?.user?.name}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{session?.user?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void handleSignOut()}>
+                <LogOut className="mr-2 h-3.5 w-3.5" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

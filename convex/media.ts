@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation, action } from './_generated/server'
 import { R2 } from '@convex-dev/r2'
-import { components, internal } from './_generated/api'
+import { api, components } from './_generated/api'
 import { requireOrgId } from './lib/orgGuard'
 
 const r2 = new R2(components.r2)
@@ -125,8 +125,8 @@ export const generateUploadUrl = action({
     mimeType: v.string(),
   },
   handler: async (ctx, { projectId, filename }): Promise<{ uploadUrl: string; r2Key: string; publicUrl: string }> => {
-    // Resolve slug server-side — never trust client-passed values for R2 paths
-    const project = await ctx.runQuery(internal.projects.getInternal, { projectId })
+    // Resolve slug server-side with org validation before issuing upload URLs.
+    const project = await ctx.runQuery(api.projects.get, { projectId })
     if (!project) throw new Error('Project not found')
     if (!project.slug) throw new Error('Project has no slug configured')
 
@@ -145,8 +145,13 @@ export const generateUploadUrl = action({
 
 /** Delete the actual R2 object after the DB record is removed */
 export const deleteFromR2 = action({
-  args: { r2Key: v.string() },
-  handler: async (ctx, { r2Key }) => {
+  args: { projectId: v.id('projects'), r2Key: v.string() },
+  handler: async (ctx, { projectId, r2Key }) => {
+    const project = await ctx.runQuery(api.projects.get, { projectId })
+    if (!project) throw new Error('Project not found')
+    if (!r2Key.startsWith(`${project.slug}/`)) {
+      throw new Error('Unauthorized: file does not belong to active project')
+    }
     await r2.deleteObject(ctx, r2Key)
   },
 })

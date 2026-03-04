@@ -10,26 +10,45 @@ export default function ProjectError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const isNoActiveOrgError =
+    error.message?.includes('No active organization in session')
   const isValidationError = error.message?.includes('ArgumentValidationError')
     || error.message?.includes('does not match the table name')
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center">
       <h2 className="text-lg font-semibold">
-        {isValidationError ? 'Invalid project' : 'Something went wrong'}
+        {isNoActiveOrgError
+          ? 'Select a workspace'
+          : isValidationError
+            ? 'Invalid project'
+            : 'Something went wrong'}
       </h2>
       <p className="mt-2 text-[13px] text-muted-foreground">
-        {isValidationError
-          ? 'The project ID in the URL is invalid. This may be from a stale bookmark or incorrect link.'
-          : error.message || 'An unexpected error occurred.'}
+        {isNoActiveOrgError
+          ? 'Your session does not have an active workspace yet. Choose or create one to continue.'
+          : isValidationError
+            ? 'The project ID in the URL is invalid. This may be from a stale bookmark or incorrect link.'
+            : error.message || 'An unexpected error occurred.'}
       </p>
       <div className="mt-6 flex gap-3">
         <Button variant="outline" size="sm" onClick={reset}>
           Try again
         </Button>
-        <Button size="sm" asChild>
-          <Link href="/admin">Back to projects</Link>
-        </Button>
+        {isNoActiveOrgError ? (
+          <>
+            <Button size="sm" asChild>
+              <Link href="/select-org">Select workspace</Link>
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/onboarding">Create workspace</Link>
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" asChild>
+            <Link href="/admin">Back to projects</Link>
+          </Button>
+        )}
       </div>
     </div>
   )

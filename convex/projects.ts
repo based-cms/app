@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { query, mutation, internalQuery } from './_generated/server'
-import { requireOrgId, assertOrgAccess } from './lib/orgGuard'
+import { requireOrgId } from './lib/orgGuard'
 import type { MutationCtx } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 
@@ -82,10 +82,21 @@ export const get = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, { slug }) => {
-    return ctx.db
+    const project = await ctx.db
       .query('projects')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique()
+
+    if (!project) return null
+
+    // Public lookup intentionally returns a safe subset only.
+    return {
+      _id: project._id,
+      name: project.name,
+      slug: project.slug,
+      primaryColor: project.primaryColor,
+      faviconUrl: project.faviconUrl,
+    }
   },
 })
 
@@ -93,8 +104,7 @@ export const getBySlug = query({
  * List ALL projects across all orgs — superadmin only.
  * Returns [] when unauthenticated or not superadmin instead of throwing.
  * The layout already gates access server-side; returning [] avoids a race
- * where ConvexProviderWithClerk fires the query before the Clerk auth
- * token is set on the Convex client.
+ * where the provider fires the query before the auth token is set.
  */
 export const listAll = query({
   args: {},
@@ -102,9 +112,9 @@ export const listAll = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return []
 
-    // is_superadmin must be added to the Clerk JWT template from user.public_metadata
-    const isSuperadmin = (identity as Record<string, unknown>)['is_superadmin'] === true
-    if (!isSuperadmin) return []
+    // Better Auth JWT includes `role` from the user record (see convex/auth.ts definePayload)
+    const role = (identity as Record<string, unknown>)['role'] as string | undefined
+    if (role !== 'superadmin') return []
 
     return ctx.db.query('projects').collect()
   },
@@ -151,7 +161,6 @@ export const update = mutation({
   },
   handler: async (ctx, { projectId, ...fields }) => {
     const orgId = await requireOrgId(ctx)
-    await assertOrgAccess(ctx, orgId)
 
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) {
@@ -282,7 +291,12 @@ export const ensureExists = mutation({
       .query('projects')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
       .unique()
-    if (existing) return existing._id
+    if (existing) {
+      if (existing.orgId !== orgId) {
+        throw new Error('Slug is already in use by another organization')
+      }
+      return existing._id
+    }
 
     return ctx.db.insert('projects', {
       orgId,

@@ -83,7 +83,7 @@ export const upsert = mutation({
 
 /**
  * Public upsert — called by older @based-cms/client versions on boot.
- * Auth is via registrationToken (UUID) instead of Clerk.
+ * Auth is via registrationToken (UUID) instead of a user session.
  * Kept for backwards compatibility. Does NOT trigger archiving —
  * upgrade to syncPublic (via updated @based-cms/client) for archive support.
  */
@@ -127,7 +127,7 @@ export const upsertPublic = mutation({
  * Called by updated @based-cms/client registerSections() on boot.
  * - Upserts all provided sections (and unarchives any that were archived)
  * - Archives any existing sections NOT in the provided list
- * Auth via registrationToken (no Clerk session needed).
+ * Auth via registrationToken (no user session needed).
  */
 export const syncPublic = mutation({
   args: {

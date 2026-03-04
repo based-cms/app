@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { useMutation } from 'convex/react'
+import { useState, useCallback, useEffect } from 'react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
-import { useOrganization, useOrganizationList, CreateOrganization } from '@clerk/nextjs'
+import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,22 +11,29 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Copy, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { Id } from '@/convex/_generated/dataModel'
-
+import { resolvePostAuthRoute, waitForActiveOrganization } from '@/lib/org-routing'
 type Step = 'org' | 'project' | 'keys' | 'done'
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { organization } = useOrganization()
-  const { userMemberships } = useOrganizationList({
-    userMemberships: { infinite: true },
-  })
+  const { data: activeOrg } = authClient.useActiveOrganization()
+  const convexActiveOrgId = useQuery(api.auth.getSessionOrganization)
 
-  const hasOrg = !!organization
-  const orgCount = userMemberships?.data?.length ?? 0
+  const [orgCount, setOrgCount] = useState(0)
+  useEffect(() => {
+    void authClient.organization.list().then(({ data }) => {
+      setOrgCount(data?.length ?? 0)
+    })
+  }, [])
 
+  const hasOrg = !!activeOrg
   // Skip org step if user already has an org
   const [step, setStep] = useState<Step>(hasOrg ? 'project' : 'org')
+
+  // Org creation state
+  const [orgName, setOrgName] = useState('')
+  const [orgSlug, setOrgSlug] = useState('')
+  const [orgCreating, setOrgCreating] = useState(false)
 
   // Project creation state
   const [name, setName] = useState('')
@@ -39,6 +46,7 @@ export default function OnboardingPage() {
   const [projectId, setProjectId] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  const isConvexOrgReady = !!activeOrg?.id && convexActiveOrgId === activeOrg.id
 
   function handleNameChange(value: string) {
     setName(value)
@@ -48,6 +56,10 @@ export default function OnboardingPage() {
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !slug.trim()) return
+    if (!isConvexOrgReady) {
+      toast.error('Workspace is still activating. Please try again in a second.')
+      return
+    }
     setLoading(true)
     try {
       const pid = await createProject({ name: name.trim(), slug: slug.trim() })
@@ -59,6 +71,54 @@ export default function OnboardingPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to create project')
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleOrgNameChange(value: string) {
+    setOrgName(value)
+    setOrgSlug(
+      value
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+    )
+  }
+
+  async function handleCreateOrg(e: React.FormEvent) {
+    e.preventDefault()
+    if (!orgName.trim() || !orgSlug.trim()) return
+    setOrgCreating(true)
+    try {
+      const { data, error } = await authClient.organization.create({
+        name: orgName.trim(),
+        slug: orgSlug.trim(),
+      })
+      if (error) {
+        toast.error(error.message ?? 'Failed to create workspace')
+        return
+      }
+      if (data) {
+        const { error: setActiveError } = await authClient.organization.setActive({
+          organizationId: data.id,
+        })
+        if (setActiveError) {
+          toast.error(setActiveError.message ?? 'Failed to activate workspace')
+          return
+        }
+
+        const synced = await waitForActiveOrganization(data.id)
+        if (!synced) {
+          const destination = await resolvePostAuthRoute()
+          router.push(destination)
+          return
+        }
+
+        setStep('project')
+      }
+    } catch {
+      toast.error('Something went wrong')
+    } finally {
+      setOrgCreating(false)
     }
   }
 
@@ -77,6 +137,7 @@ export default function OnboardingPage() {
   const fullKey = token
     ? `bcms_live-${btoa(`${deploymentName}.${token}`)}`
     : ''
+  const envSnippet = `BASED-CMS-SLUG=${slug}\nBASED-CMS-KEY=${fullKey}`
 
   return (
     <div className="space-y-8 py-10">
@@ -112,13 +173,13 @@ export default function OnboardingPage() {
           <div>
             <h1 className="text-xl font-semibold">Create your workspace</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Each workspace is a Clerk organization that isolates your projects.
+              Each workspace isolates your projects and team members.
             </p>
           </div>
-          {orgCount >= 1 ? (
+          {orgCount >= 1 && activeOrg ? (
             <div className="space-y-4">
               <p className="text-sm">
-                You already have a workspace: <strong>{organization?.name}</strong>
+                You already have a workspace: <strong>{activeOrg.name}</strong>
               </p>
               <Button onClick={() => setStep('project')}>
                 Continue
@@ -126,17 +187,31 @@ export default function OnboardingPage() {
               </Button>
             </div>
           ) : (
-            <div className="flex justify-center">
-              <CreateOrganization
-                afterCreateOrganizationUrl="/onboarding"
-                appearance={{
-                  elements: {
-                    rootBox: 'w-full',
-                    card: 'shadow-none border',
-                  },
-                }}
-              />
-            </div>
+            <form onSubmit={handleCreateOrg} className="space-y-4 text-left">
+              <div className="space-y-1.5">
+                <Label htmlFor="orgName">Workspace name</Label>
+                <Input
+                  id="orgName"
+                  placeholder="My Company"
+                  value={orgName}
+                  onChange={(e) => handleOrgNameChange(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="orgSlug">Slug</Label>
+                <Input
+                  id="orgSlug"
+                  placeholder="my-company"
+                  value={orgSlug}
+                  onChange={(e) => setOrgSlug(e.target.value)}
+                  className="font-mono text-sm"
+                />
+              </div>
+              <Button type="submit" disabled={orgCreating || !orgName || !orgSlug} className="w-full">
+                {orgCreating ? 'Creating...' : 'Create workspace'}
+              </Button>
+            </form>
           )}
         </div>
       )}
@@ -174,9 +249,18 @@ export default function OnboardingPage() {
                 Public identifier — used as <code>BASED-CMS-SLUG</code> in your client app.
               </p>
             </div>
-            <Button type="submit" disabled={loading || !name || !slug} className="w-full">
+            <Button
+              type="submit"
+              disabled={loading || !name || !slug || !isConvexOrgReady}
+              className="w-full"
+            >
               {loading ? 'Creating...' : 'Create project'}
             </Button>
+            {!isConvexOrgReady && (
+              <p className="text-xs text-muted-foreground">
+                Finalizing workspace activation...
+              </p>
+            )}
           </form>
         </div>
       )}
@@ -233,6 +317,30 @@ export default function OnboardingPage() {
               <p className="text-xs text-muted-foreground">
                 Keep this secret. Do not prefix with <code>NEXT_PUBLIC_</code>.
               </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Label>.env.local snippet</Label>
+                <Badge variant="secondary" className="text-[10px]">one-click</Badge>
+              </div>
+              <div className="flex items-start gap-2">
+                <code className="flex-1 whitespace-pre rounded-lg border bg-muted/50 px-3 py-2 font-mono text-xs">
+                  {envSnippet}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(envSnippet, '.env snippet')}
+                >
+                  {copied === '.env snippet' ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
