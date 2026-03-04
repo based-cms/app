@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
 import { requireOrgId } from './lib/orgGuard'
+import { rateLimit } from './lib/rateLimits'
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,8 @@ export const upsertPublic = mutation({
     fieldsSchema: v.string(),
   },
   handler: async (ctx, { registrationToken, sectionType, label, fieldsSchema }) => {
+    await rateLimit(ctx, { name: 'tokenAuth', key: registrationToken })
+
     const project = await ctx.db
       .query('projects')
       .withIndex('by_token', (q) => q.eq('registrationToken', registrationToken))
@@ -141,6 +144,8 @@ export const syncPublic = mutation({
     ),
   },
   handler: async (ctx, { registrationToken, sections }) => {
+    await rateLimit(ctx, { name: 'tokenAuth', key: registrationToken })
+
     const project = await ctx.db
       .query('projects')
       .withIndex('by_token', (q) => q.eq('registrationToken', registrationToken))

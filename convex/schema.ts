@@ -1,7 +1,10 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { rateLimitTables } from 'convex-helpers/server/rateLimit'
 
 export default defineSchema({
+  ...rateLimitTables,
+
   // One document per client org — stores display info and the public slug
   projects: defineTable({
     orgId: v.string(),                         // Organization ID — isolation key
