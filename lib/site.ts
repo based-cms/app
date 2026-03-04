@@ -1,23 +1,27 @@
+/**
+ * PII is read from server-only env vars (not NEXT_PUBLIC_*) so it stays
+ * out of the client bundle. Falls back to placeholders in development.
+ */
 export const siteConfig = {
   name: 'Based CMS',
-  legalName: 'David Robert Zelder',
+  legalName: process.env.SITE_LEGAL_NAME ?? 'Legal Name',
   businessType: 'Sole Proprietorship (Einzelfirma)',
-  ownerName: 'David Robert Zelder',
+  ownerName: process.env.SITE_LEGAL_NAME ?? 'Owner Name',
   url: process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://based-cms.dev',
   description:
     'Developer-first headless CMS for realtime content modeling, typed schemas, and multi-tenant SaaS workflows.',
-  supportEmail: 'david@zelder.li',
-  legalEmail: 'david@zelder.li',
-  phone: '+41 77 432 59 24',
+  supportEmail: process.env.SITE_EMAIL ?? 'support@example.com',
+  legalEmail: process.env.SITE_EMAIL ?? 'legal@example.com',
+  phone: process.env.SITE_PHONE ?? '',
   address: {
-    street: 'Brüelweg 11',
-    postalCode: '9496',
-    city: 'Balzers',
-    country: 'Liechtenstein',
+    street: process.env.SITE_ADDRESS_STREET ?? '',
+    postalCode: process.env.SITE_ADDRESS_POSTAL ?? '',
+    city: process.env.SITE_ADDRESS_CITY ?? '',
+    country: process.env.SITE_ADDRESS_COUNTRY ?? 'Liechtenstein',
   },
-  uid: 'CHE-379.712.697',
+  uid: process.env.SITE_UID ?? '',
   uidRegistryNote:
-    'UID registry details may still reference a previous address (Im Grabaton 9, 9494 Schaan).',
+    'UID registry details may still reference a previous address.',
   imprintLawReference: 'Liechtenstein ECG §5',
 } as const
 

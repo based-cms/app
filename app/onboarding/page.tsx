@@ -132,7 +132,7 @@ export default function OnboardingPage() {
   // Build the display key from the deployment name + token
   const deploymentName = process.env.NEXT_PUBLIC_CONVEX_URL
     ?.replace('https://', '')
-    .replace('.eu-west-1.convex.cloud', '')
+    .replace(/\.[a-z0-9-]+\.convex\.cloud$/, '')
     .replace('.convex.cloud', '') ?? ''
   const fullKey = token
     ? `bcms_live-${btoa(`${deploymentName}.${token}`)}`

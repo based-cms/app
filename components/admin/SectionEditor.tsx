@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 interface Props {
   projectId: Id<'projects'>
   sectionType: string
-  env: 'production' | 'preview'
+  env: 'production'
   fieldsSchema: FieldsSchema
   initialItems: Record<string, unknown>[]
 }
@@ -26,7 +26,13 @@ export function SectionEditor({
   fieldsSchema,
   initialItems,
 }: Props) {
-  const [items, setItems] = useState<Record<string, unknown>[]>(initialItems)
+  // Ensure every item has a stable _key for React reconciliation
+  const [items, setItems] = useState<Record<string, unknown>[]>(() =>
+    initialItems.map((item) => ({
+      ...item,
+      _key: (item._key as string) || crypto.randomUUID(),
+    }))
+  )
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -60,7 +66,7 @@ export function SectionEditor({
   }
 
   function addItem() {
-    const blank: Record<string, unknown> = {}
+    const blank: Record<string, unknown> = { _key: crypto.randomUUID() }
     for (const [key, def] of Object.entries(fieldsSchema)) {
       blank[key] = def.defaultValue ?? (def.type === 'boolean' ? false : def.type === 'number' ? 0 : '')
     }
@@ -114,7 +120,7 @@ export function SectionEditor({
       ) : (
         <div className="space-y-4">
           {items.map((item, index) => (
-            <div key={index} className="rounded-lg border bg-card">
+            <div key={item._key as string} className="rounded-lg border bg-card">
               <div className="flex items-center gap-2 border-b px-4 py-2.5">
                 <span className="flex-1 text-xs font-medium text-muted-foreground">
                   Item {index + 1}
