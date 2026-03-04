@@ -12,7 +12,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protect /admin routes — redirect to sign-in if unauthenticated
-  if (pathname.startsWith('/admin') || pathname.startsWith('/superadmin')) {
+  if (pathname.startsWith('/admin') || pathname.startsWith('/superadmin') || pathname.startsWith('/onboarding')) {
     const authed = await isAuthenticated()
     if (!authed) {
       const signInUrl = new URL('/sign-in', request.url)
