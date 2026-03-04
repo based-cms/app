@@ -17,6 +17,7 @@ import type * as polar from "../polar.js";
 import type * as projects from "../projects.js";
 import type * as sectionContent from "../sectionContent.js";
 import type * as sectionRegistry from "../sectionRegistry.js";
+import type * as superadmins from "../superadmins.js";
 
 import type {
   ApiFromModules,
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   sectionContent: typeof sectionContent;
   sectionRegistry: typeof sectionRegistry;
+  superadmins: typeof superadmins;
 }>;
 
 /**
