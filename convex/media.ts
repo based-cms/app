@@ -26,7 +26,7 @@ export const list = query({
         q.eq('projectId', projectId).eq('folder', folderPath)
       )
       .order('desc')
-      .collect()
+      .take(200)
   },
 })
 
@@ -42,7 +42,7 @@ export const listAll = query({
       .query('media')
       .withIndex('by_project', (q) => q.eq('projectId', projectId))
       .order('desc')
-      .collect()
+      .take(1000)
   },
 })
 

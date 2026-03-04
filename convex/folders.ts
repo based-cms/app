@@ -19,7 +19,7 @@ export const list = query({
         q.eq('projectId', projectId).eq('parentPath', parentPath)
       )
       .order('asc')
-      .collect()
+      .take(200)
   },
 })
 
@@ -35,7 +35,7 @@ export const listAll = query({
       .query('folders')
       .withIndex('by_project', (q) => q.eq('projectId', projectId))
       .order('asc')
-      .collect()
+      .take(200)
   },
 })
 

@@ -1,8 +1,42 @@
 import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
+import type { MutationCtx } from './_generated/server'
+import type { Doc } from './_generated/dataModel'
 import { requireOrgId } from './lib/orgGuard'
 import { rateLimit } from './lib/rateLimits'
 import { validateSectionType, validateName, validateFieldsSchema } from './lib/validators'
+import { sha256 } from './lib/hash'
+
+/**
+ * Look up a project by registration token using dual-read strategy:
+ * 1. Hash the token, check by_token_hash index
+ * 2. If miss, fall back to plaintext by_token index (migration compat)
+ * 3. On plaintext match, backfill the hash for future lookups
+ */
+async function lookupProjectByToken(
+  ctx: MutationCtx,
+  registrationToken: string
+): Promise<Doc<'projects'>> {
+  const hash = await sha256(registrationToken)
+
+  // Try hash-based lookup first
+  const byHash = await ctx.db
+    .query('projects')
+    .withIndex('by_token_hash', (q) => q.eq('registrationTokenHash', hash))
+    .unique()
+  if (byHash) return byHash
+
+  // Fall back to plaintext lookup (for pre-migration tokens)
+  const byPlaintext = await ctx.db
+    .query('projects')
+    .withIndex('by_token', (q) => q.eq('registrationToken', registrationToken))
+    .unique()
+  if (!byPlaintext) throw new Error('Invalid registration token')
+
+  // Backfill hash for this token
+  await ctx.db.patch(byPlaintext._id, { registrationTokenHash: hash })
+  return byPlaintext
+}
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -17,7 +51,7 @@ export const list = query({
     return ctx.db
       .query('section_registry')
       .withIndex('by_project', (q) => q.eq('projectId', projectId))
-      .collect()
+      .take(100)
   },
 })
 
@@ -106,11 +140,7 @@ export const upsertPublic = mutation({
     const safeLabel = validateName(label)
     const safeFieldsSchema = validateFieldsSchema(fieldsSchema)
 
-    const project = await ctx.db
-      .query('projects')
-      .withIndex('by_token', (q) => q.eq('registrationToken', registrationToken))
-      .unique()
-    if (!project) throw new Error('Invalid registration token')
+    const project = await lookupProjectByToken(ctx, registrationToken)
 
     const existing = await ctx.db
       .query('section_registry')
@@ -154,11 +184,7 @@ export const syncPublic = mutation({
   handler: async (ctx, { registrationToken, sections }) => {
     await rateLimit(ctx, { name: 'tokenAuth', key: registrationToken })
 
-    const project = await ctx.db
-      .query('projects')
-      .withIndex('by_token', (q) => q.eq('registrationToken', registrationToken))
-      .unique()
-    if (!project) throw new Error('Invalid registration token')
+    const project = await lookupProjectByToken(ctx, registrationToken)
 
     // Validate all sections upfront
     const validatedSections = sections.map((s) => ({
@@ -199,7 +225,7 @@ export const syncPublic = mutation({
     const allEntries = await ctx.db
       .query('section_registry')
       .withIndex('by_project', (q) => q.eq('projectId', project._id))
-      .collect()
+      .take(200)
 
     const now = Date.now()
     for (const entry of allEntries) {

@@ -13,7 +13,7 @@ export const get = query({
   args: {
     projectId: v.id('projects'),
     sectionType: v.string(),
-    env: v.union(v.literal('production'), v.literal('preview')),
+    env: v.literal('production'),
   },
   handler: async (ctx, { projectId, sectionType, env }) => {
     const orgId = await requireOrgId(ctx)
@@ -37,7 +37,7 @@ export const getPublic = query({
   args: {
     orgSlug: v.string(),
     sectionType: v.string(),
-    env: v.union(v.literal('production'), v.literal('preview')),
+    env: v.literal('production'),
   },
   handler: async (ctx, { orgSlug, sectionType, env }) => {
     // Look up project by slug (public identifier)
@@ -75,7 +75,7 @@ export const getAllForProject = query({
     return ctx.db
       .query('section_content')
       .withIndex('by_project', (q) => q.eq('projectId', projectId))
-      .collect()
+      .take(500)
   },
 })
 
@@ -95,7 +95,7 @@ export const getAllBySlug = query({
     return ctx.db
       .query('section_content')
       .withIndex('by_project', (q) => q.eq('projectId', project._id))
-      .collect()
+      .take(500)
   },
 })
 
@@ -109,7 +109,7 @@ export const setItems = mutation({
   args: {
     projectId: v.id('projects'),
     sectionType: v.string(),
-    env: v.union(v.literal('production'), v.literal('preview')),
+    env: v.literal('production'),
     items: v.array(v.any()),
   },
   handler: async (ctx, { projectId, sectionType, env, items }) => {
@@ -159,7 +159,7 @@ export const setItemsBySlug = mutation({
   args: {
     slug: v.string(),
     sectionType: v.string(),
-    env: v.union(v.literal('production'), v.literal('preview')),
+    env: v.literal('production'),
     items: v.array(v.any()),
   },
   handler: async (ctx, { slug, sectionType, env, items }) => {
@@ -211,8 +211,8 @@ export const setItemsBySlug = mutation({
 export const copyEnv = mutation({
   args: {
     projectId: v.id('projects'),
-    fromEnv: v.union(v.literal('production'), v.literal('preview')),
-    toEnv: v.union(v.literal('production'), v.literal('preview')),
+    fromEnv: v.literal('production'),
+    toEnv: v.literal('production'),
   },
   handler: async (ctx, { projectId, fromEnv, toEnv }) => {
     const orgId = await requireOrgId(ctx)

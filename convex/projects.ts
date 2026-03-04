@@ -1,7 +1,10 @@
 import { v } from 'convex/values'
-import { query, mutation, internalQuery } from './_generated/server'
+import { query, mutation, internalQuery, internalMutation } from './_generated/server'
+import { internal } from './_generated/api'
 import { requireOrgId } from './lib/orgGuard'
+import { requireProjectAccess } from './lib/requireProjectAccess'
 import { validateSlug, validateName } from './lib/validators'
+import { sha256 } from './lib/hash'
 import type { MutationCtx } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 
@@ -12,39 +15,68 @@ async function cascadeDeleteProject(
   ctx: MutationCtx,
   projectId: Id<'projects'>
 ) {
-  // 1. section_registry
+  // 1. Collect R2 keys before deleting media records
+  const media = await ctx.db
+    .query('media')
+    .withIndex('by_project', (q) => q.eq('projectId', projectId))
+    .collect()
+  const r2Keys = media.map((m) => m.r2Key)
+
+  // 2. section_registry
   const registry = await ctx.db
     .query('section_registry')
     .withIndex('by_project', (q) => q.eq('projectId', projectId))
     .collect()
   for (const doc of registry) await ctx.db.delete(doc._id)
 
-  // 2. section_content
+  // 3. section_content
   const content = await ctx.db
     .query('section_content')
     .withIndex('by_project', (q) => q.eq('projectId', projectId))
     .collect()
   for (const doc of content) await ctx.db.delete(doc._id)
 
-  // 3. media metadata (R2 objects remain — separate cleanup if needed)
-  const media = await ctx.db
-    .query('media')
-    .withIndex('by_project', (q) => q.eq('projectId', projectId))
-    .collect()
+  // 4. media metadata
   for (const doc of media) await ctx.db.delete(doc._id)
 
-  // 4. folders
+  // 5. folders
   const folders = await ctx.db
     .query('folders')
     .withIndex('by_project', (q) => q.eq('projectId', projectId))
     .collect()
   for (const doc of folders) await ctx.db.delete(doc._id)
 
-  // 5. project itself
+  // 6. project itself
   await ctx.db.delete(projectId)
+
+  // 7. Schedule batch R2 cleanup (non-blocking)
+  if (r2Keys.length > 0) {
+    await ctx.scheduler.runAfter(0, internal.projects.cleanupR2Objects, { r2Keys })
+  }
 }
 
-// ─── Internal Queries ────────────────────────────────────────────────────────
+/** Safe projection — strips sensitive fields from project document. */
+function safeProject(project: {
+  _id: Id<'projects'>
+  _creationTime: number
+  orgId: string
+  name: string
+  slug: string
+  primaryColor: string
+  faviconUrl: string
+}) {
+  return {
+    _id: project._id,
+    _creationTime: project._creationTime,
+    orgId: project.orgId,
+    name: project.name,
+    slug: project.slug,
+    primaryColor: project.primaryColor,
+    faviconUrl: project.faviconUrl,
+  }
+}
+
+// ─── Internal Queries / Mutations ────────────────────────────────────────────
 
 /** Get a project by ID — no auth, for use by other Convex functions only */
 export const getInternal = internalQuery({
@@ -54,28 +86,58 @@ export const getInternal = internalQuery({
   },
 })
 
+/** Batch delete R2 objects — scheduled by cascadeDeleteProject */
+export const cleanupR2Objects = internalMutation({
+  args: { r2Keys: v.array(v.string()) },
+  handler: async (_ctx, { r2Keys: _r2Keys }) => {
+    // R2 deletion requires an action context (R2 component).
+    // For now, log the keys for manual cleanup. A proper implementation
+    // would schedule an internal action that calls r2.deleteObject for each key.
+    // TODO: Implement batch R2 deletion via internal action
+    console.warn(`Orphaned R2 keys pending cleanup: ${_r2Keys.length} objects`)
+  },
+})
+
+/** One-time migration: hash existing plaintext registration tokens. */
+export const migrateHashTokens = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const projects = await ctx.db.query('projects').collect()
+    let migrated = 0
+    for (const project of projects) {
+      if (project.registrationToken && !project.registrationTokenHash) {
+        const hash = await sha256(project.registrationToken)
+        await ctx.db.patch(project._id, { registrationTokenHash: hash })
+        migrated++
+      }
+    }
+    console.log(`Migrated ${migrated} registration token(s) to hashed storage`)
+  },
+})
+
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-/** List all projects for the current org */
+/** List all projects for the current org — strips registrationToken */
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const orgId = await requireOrgId(ctx)
-    return ctx.db
+    const projects = await ctx.db
       .query('projects')
       .withIndex('by_org', (q) => q.eq('orgId', orgId))
-      .collect()
+      .take(100)
+    return projects.map(safeProject)
   },
 })
 
-/** Get a single project by ID — verifies org ownership */
+/** Get a single project by ID — verifies org ownership, strips token */
 export const get = query({
   args: { projectId: v.id('projects') },
   handler: async (ctx, { projectId }) => {
     const orgId = await requireOrgId(ctx)
     const project = await ctx.db.get(projectId)
     if (!project || project.orgId !== orgId) return null
-    return project
+    return safeProject(project)
   },
 })
 
@@ -101,11 +163,19 @@ export const getBySlug = query({
   },
 })
 
+/** Get registration token for a project — dedicated query for settings page */
+export const getRegistrationToken = query({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, { projectId }) => {
+    const { project } = await requireProjectAccess(ctx, projectId)
+    return project.registrationToken ?? null
+  },
+})
+
 /**
  * List ALL projects across all orgs — superadmin only.
  * Returns [] when unauthenticated or not superadmin instead of throwing.
- * The layout already gates access server-side; returning [] avoids a race
- * where the provider fires the query before the auth token is set.
+ * Strips registrationToken from all results.
  */
 export const listAll = query({
   args: {},
@@ -122,7 +192,8 @@ export const listAll = query({
       .unique()
     if (!entry) return []
 
-    return ctx.db.query('projects').collect()
+    const projects = await ctx.db.query('projects').take(500)
+    return projects.map(safeProject)
   },
 })
 
@@ -168,12 +239,7 @@ export const update = mutation({
     faviconUrl: v.optional(v.string()),
   },
   handler: async (ctx, { projectId, ...fields }) => {
-    const orgId = await requireOrgId(ctx)
-
-    const project = await ctx.db.get(projectId)
-    if (!project || project.orgId !== orgId) {
-      throw new Error('Project not found')
-    }
+    await requireProjectAccess(ctx, projectId)
 
     // Validate inputs
     if (fields.name !== undefined) validateName(fields.name)
@@ -202,25 +268,37 @@ export const update = mutation({
 
 /**
  * Generate (or regenerate) the registration token for a project.
- * Stores a 24-char random string (uppercase A-Z + digits 0-9).
- * The CMS admin page constructs the full bcms_ key for display to users.
+ * Stores both plaintext (for backwards compat) and SHA-256 hash.
+ * Uses rejection sampling to avoid modulo bias.
  */
 export const generateRegistrationToken = mutation({
   args: { projectId: v.id('projects') },
   handler: async (ctx, { projectId }) => {
-    const orgId = await requireOrgId(ctx)
-    const project = await ctx.db.get(projectId)
-    if (!project || project.orgId !== orgId) throw new Error('Project not found')
+    await requireProjectAccess(ctx, projectId)
 
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     const bytes = new Uint8Array(24)
     crypto.getRandomValues(bytes)
     let token = ''
-    for (let i = 0; i < 24; i++) {
-      token += chars[bytes[i]! % chars.length]
+    // Rejection sampling: 256 % 36 = 4, so reject bytes >= 252 (= 36 * 7)
+    const limit = 252
+    let idx = 0
+    while (token.length < 24) {
+      if (idx >= bytes.length) {
+        crypto.getRandomValues(bytes)
+        idx = 0
+      }
+      if (bytes[idx]! < limit) {
+        token += chars[bytes[idx]! % chars.length]
+      }
+      idx++
     }
 
-    await ctx.db.patch(projectId, { registrationToken: token })
+    const hash = await sha256(token)
+    await ctx.db.patch(projectId, {
+      registrationToken: token,
+      registrationTokenHash: hash,
+    })
     return token
   },
 })
@@ -229,12 +307,7 @@ export const generateRegistrationToken = mutation({
 export const remove = mutation({
   args: { projectId: v.id('projects') },
   handler: async (ctx, { projectId }) => {
-    const orgId = await requireOrgId(ctx)
-    const project = await ctx.db.get(projectId)
-    if (!project || project.orgId !== orgId) {
-      throw new Error('Project not found')
-    }
-
+    const { project } = await requireProjectAccess(ctx, projectId)
     await cascadeDeleteProject(ctx, projectId)
     return { slug: project.slug }
   },
@@ -280,7 +353,8 @@ export const syncRegistrationToken = mutation({
     if (!project || project.orgId !== orgId) {
       throw new Error('Project not found')
     }
-    await ctx.db.patch(project._id, { registrationToken })
+    const hash = await sha256(registrationToken)
+    await ctx.db.patch(project._id, { registrationToken, registrationTokenHash: hash })
   },
 })
 

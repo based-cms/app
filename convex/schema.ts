@@ -12,11 +12,13 @@ export default defineSchema({
     slug: v.string(),                          // public identifier used by @based-cms/client package
     primaryColor: v.string(),
     faviconUrl: v.string(),
-    registrationToken: v.optional(v.string()), // secret used by registerSections() in client apps
+    registrationToken: v.optional(v.string()), // plaintext — kept for dual-read migration, will be removed
+    registrationTokenHash: v.optional(v.string()), // SHA-256 hex hash of the token
   })
     .index('by_org', ['orgId'])
     .index('by_slug', ['slug'])
-    .index('by_token', ['registrationToken']),
+    .index('by_token', ['registrationToken'])
+    .index('by_token_hash', ['registrationTokenHash']),
 
   // Written by the client Next.js project on boot via cms.registerSections()
   // Defines what sections exist and what fields they have
@@ -38,7 +40,7 @@ export default defineSchema({
     orgId: v.string(),
     projectId: v.id('projects'),
     sectionType: v.string(),
-    env: v.union(v.literal('production'), v.literal('preview')),
+    env: v.literal('production'),
     items: v.array(v.any()),   // array of records matching the fieldsSchema
   })
     .index('by_project_type_env', ['projectId', 'sectionType', 'env'])
