@@ -1,0 +1,7 @@
+Format: https://www.reuse.software/spec/
+Upstream-Name: Based CMS
+Upstream-Contact: david@zelder.li
+
+Files: *
+Copyright: 2025-2026 David Robert Zelder
+License: FSL-1.1-MIT

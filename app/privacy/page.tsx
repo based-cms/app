@@ -103,8 +103,11 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold text-[#f9fafb]">7. Cookies and similar tech</h2>
         <p className="mt-3">
           We use essential cookies and similar technologies needed for authentication,
-          security, and service functionality. If non-essential technologies are used in
-          the future, this policy and any consent mechanism will be updated accordingly.
+          security, and service functionality. A cookie consent banner is displayed on your
+          first visit, allowing you to accept or decline non-essential cookies. Your choice
+          is stored in a cookie (<code className="text-xs">bcms_cookie_consent</code>) for
+          one year. You can change your preference at any time by clearing this cookie from
+          your browser settings.
         </p>
       </section>
 
