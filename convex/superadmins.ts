@@ -10,7 +10,7 @@ async function getCallerEmail(ctx: { auth: { getUserIdentity: () => Promise<{ em
 }
 
 /** Assert the caller is a superadmin. Throws if not. */
-async function assertSuperadmin(ctx: { auth: { getUserIdentity: () => Promise<{ email?: string } | null> } } & { db: any }) {
+export async function assertSuperadmin(ctx: { auth: { getUserIdentity: () => Promise<{ email?: string } | null> } } & { db: any }) {
   const email = await getCallerEmail(ctx)
   if (!email) throw new Error('Not authenticated')
   const entry = await ctx.db

@@ -18,10 +18,17 @@ import {
 import { Check, ChevronsUpDown, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const orgTabs = [
+  { key: 'projects', label: 'Projects', path: '' },
+  { key: 'analytics', label: 'Analytics', path: '/analytics' },
+  { key: 'billing', label: 'Billing', path: '/billing' },
+] as const
+
 const projectTabs = [
   { key: 'overview', label: 'Overview', path: '' },
   { key: 'content', label: 'Content', path: '/content' },
   { key: 'files', label: 'Files', path: '/files' },
+  { key: 'analytics', label: 'Analytics', path: '/analytics' },
   { key: 'settings', label: 'Settings', path: '/settings' },
 ] as const
 
@@ -71,18 +78,30 @@ export function AdminNav() {
     ? (projects ?? []).find((p) => p._id === projectId) ?? null
     : null
 
-  // Active tab
+  // Active tab — project-level or org-level
   const basePath = projectId ? `/admin/${projectId}` : null
   let activeTab: string | null = null
   if (basePath) {
+    // Project-level tabs
     if (pathname === basePath || pathname === `${basePath}/`) {
       activeTab = 'overview'
     } else if (pathname.startsWith(`${basePath}/content`)) {
       activeTab = 'content'
     } else if (pathname.startsWith(`${basePath}/files`)) {
       activeTab = 'files'
+    } else if (pathname.startsWith(`${basePath}/analytics`)) {
+      activeTab = 'analytics'
     } else if (pathname.startsWith(`${basePath}/settings`)) {
       activeTab = 'settings'
+    }
+  } else {
+    // Org-level tabs
+    if (pathname === '/admin' || pathname === '/admin/') {
+      activeTab = 'projects'
+    } else if (pathname.startsWith('/admin/analytics')) {
+      activeTab = 'analytics'
+    } else if (pathname.startsWith('/admin/billing')) {
+      activeTab = 'billing'
     }
   }
 
@@ -267,29 +286,29 @@ export function AdminNav() {
         </div>
       </div>
 
-      {/* Tab row — project context only */}
-      {projectId && (
-        <div className="-mb-px flex items-end gap-1 px-4">
-          {projectTabs.map((tab) => {
-            const href = `/admin/${projectId}${tab.path}`
-            const isActive = activeTab === tab.key
-            return (
-              <Link
-                key={tab.key}
-                href={href}
-                className={cn(
-                  'border-b-2 px-3 pb-2 text-[13px] transition-colors',
-                  isActive
-                    ? 'border-foreground font-medium text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {tab.label}
-              </Link>
-            )
-          })}
-        </div>
-      )}
+      {/* Tab row — org-level or project-level */}
+      <div className="-mb-px flex items-end gap-1 px-4">
+        {(projectId ? projectTabs : orgTabs).map((tab) => {
+          const href = projectId
+            ? `/admin/${projectId}${tab.path}`
+            : `/admin${tab.path}`
+          const isActive = activeTab === tab.key
+          return (
+            <Link
+              key={tab.key}
+              href={href}
+              className={cn(
+                'border-b-2 px-3 pb-2 text-[13px] transition-colors',
+                isActive
+                  ? 'border-foreground font-medium text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {tab.label}
+            </Link>
+          )
+        })}
+      </div>
     </header>
   )
 }

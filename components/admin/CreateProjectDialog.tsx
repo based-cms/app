@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { isPlanLimitError, planLimitMessage } from '@/lib/plan-error'
 
 interface Props {
   open: boolean
@@ -42,7 +43,16 @@ export function CreateProjectDialog({ open, onOpenChange }: Props) {
       setSlug('')
       router.push(`/admin/${projectId}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create project')
+      if (isPlanLimitError(err)) {
+        toast.error(planLimitMessage(err.data), {
+          action: {
+            label: 'Upgrade',
+            onClick: () => router.push('/admin/billing'),
+          },
+        })
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Failed to create project')
+      }
     } finally {
       setLoading(false)
     }

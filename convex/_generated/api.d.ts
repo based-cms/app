@@ -8,15 +8,26 @@
  * @module
  */
 
+import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
 import type * as folders from "../folders.js";
 import type * as http from "../http.js";
+import type * as lib_checkLimit from "../lib/checkLimit.js";
+import type * as lib_hash from "../lib/hash.js";
 import type * as lib_orgGuard from "../lib/orgGuard.js";
+import type * as lib_plans from "../lib/plans.js";
+import type * as lib_rateLimits from "../lib/rateLimits.js";
+import type * as lib_requireProjectAccess from "../lib/requireProjectAccess.js";
+import type * as lib_usage from "../lib/usage.js";
+import type * as lib_validateItems from "../lib/validateItems.js";
+import type * as lib_validators from "../lib/validators.js";
 import type * as media from "../media.js";
 import type * as polar from "../polar.js";
 import type * as projects from "../projects.js";
 import type * as sectionContent from "../sectionContent.js";
 import type * as sectionRegistry from "../sectionRegistry.js";
+import type * as superadminAnalytics from "../superadminAnalytics.js";
 import type * as superadmins from "../superadmins.js";
 
 import type {
@@ -26,15 +37,26 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
   auth: typeof auth;
+  billing: typeof billing;
   folders: typeof folders;
   http: typeof http;
+  "lib/checkLimit": typeof lib_checkLimit;
+  "lib/hash": typeof lib_hash;
   "lib/orgGuard": typeof lib_orgGuard;
+  "lib/plans": typeof lib_plans;
+  "lib/rateLimits": typeof lib_rateLimits;
+  "lib/requireProjectAccess": typeof lib_requireProjectAccess;
+  "lib/usage": typeof lib_usage;
+  "lib/validateItems": typeof lib_validateItems;
+  "lib/validators": typeof lib_validators;
   media: typeof media;
   polar: typeof polar;
   projects: typeof projects;
   sectionContent: typeof sectionContent;
   sectionRegistry: typeof sectionRegistry;
+  superadminAnalytics: typeof superadminAnalytics;
   superadmins: typeof superadmins;
 }>;
 
