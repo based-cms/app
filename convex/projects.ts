@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import { requireOrgId } from './lib/orgGuard'
 import { requireProjectAccess } from './lib/requireProjectAccess'
 import { validateSlug, validateName } from './lib/validators'
+import { checkProjectLimit } from './lib/checkLimit'
 import { sha256 } from './lib/hash'
 import type { MutationCtx } from './_generated/server'
 import type { Id } from './_generated/dataModel'
@@ -209,6 +210,8 @@ export const create = mutation({
   },
   handler: async (ctx, { name, slug, primaryColor, faviconUrl }) => {
     const orgId = await requireOrgId(ctx)
+    await checkProjectLimit(ctx, orgId)
+
     const safeName = validateName(name)
     const safeSlug = validateSlug(slug)
 
@@ -383,6 +386,8 @@ export const ensureExists = mutation({
       }
       return existing._id
     }
+
+    await checkProjectLimit(ctx, orgId)
 
     return ctx.db.insert('projects', {
       orgId,

@@ -4,6 +4,7 @@ import { R2 } from '@convex-dev/r2'
 import { api, components } from './_generated/api'
 import { requireOrgId } from './lib/orgGuard'
 import { sanitizeFilename, validateMimeType, validateHttpsUrl } from './lib/validators'
+import { checkMediaStorageLimit } from './lib/checkLimit'
 
 const r2 = new R2(components.r2)
 
@@ -65,6 +66,8 @@ export const create = mutation({
     if (!project || project.orgId !== orgId) {
       throw new Error('Project not found')
     }
+
+    await checkMediaStorageLimit(ctx, orgId, size)
 
     const safeUrl = validateHttpsUrl(url)
     const safeMime = validateMimeType(mimeType)

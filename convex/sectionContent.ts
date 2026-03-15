@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
 import { requireOrgId } from './lib/orgGuard'
 import { validateItems } from './lib/validateItems'
+import { checkContentItemLimit } from './lib/checkLimit'
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,8 @@ export const setItems = mutation({
       throw new Error('Project not found')
     }
 
+    await checkContentItemLimit(ctx, projectId, sectionType, items.length)
+
     // Validate items against the section's fieldsSchema
     const registry = await ctx.db
       .query('section_registry')
@@ -171,6 +174,8 @@ export const setItemsBySlug = mutation({
     if (!project || project.orgId !== orgId) {
       throw new Error('Project not found')
     }
+
+    await checkContentItemLimit(ctx, project._id, sectionType, items.length)
 
     // Validate items against the section's fieldsSchema
     const registry = await ctx.db

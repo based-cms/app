@@ -59,6 +59,7 @@ export default defineSchema({
     uploadedAt: v.number(), // Unix ms
     folder: v.optional(v.string()), // full folder path, "" = root
   })
+    .index('by_org', ['orgId'])
     .index('by_project', ['projectId'])
     .index('by_r2_key', ['r2Key'])
     .index('by_project_folder', ['projectId', 'folder']),
