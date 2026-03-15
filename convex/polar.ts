@@ -1,16 +1,30 @@
 /**
- * Polar integration — component set up, UI deferred.
+ * Polar billing client — instantiated with the registered component.
  *
- * The Polar component is registered in convex.config.ts and its schema tables
- * are present in Convex from day one. Billing UI will be added in a future phase.
- *
- * TODO: Polar UI (future phase)
- * - Subscription plans page: show current plan, upgrade/downgrade
- * - Usage-based gating: max N projects per plan tier
- * - Webhook handler at app/api/polar/events/route.ts
- * - Customer portal link for self-service billing
- * - Add planTier: "free" | "pro" | "enterprise" field to projects table
+ * Uses orgId as the Polar "userId" so subscriptions map 1:1 to orgs.
+ * Product keys (pro/max/enterprise) match PlanTier names directly,
+ * so getCurrentSubscription().productKey is the tier.
  */
 
-// No functions yet — placeholder file so the module exists when Phase 4+ references it.
-export {}
+import { Polar } from '@convex-dev/polar'
+import { components } from './_generated/api'
+import type { QueryCtx } from './_generated/server'
+
+export const polar = new Polar(components.polar, {
+  products: {
+    pro: process.env.POLAR_PRODUCT_PRO ?? '',
+    max: process.env.POLAR_PRODUCT_MAX ?? '',
+    enterprise: process.env.POLAR_PRODUCT_ENTERPRISE ?? '',
+  },
+  getUserInfo: async (ctx) => {
+    // Use orgId as Polar userId — billing is per-org, not per-user
+    // Cast: RunQueryCtx doesn't include auth, but our app ctx always has it
+    const identity = await (ctx as unknown as QueryCtx).auth.getUserIdentity()
+    if (!identity) throw new Error('Unauthenticated')
+    const orgId = (identity as Record<string, unknown>)
+      .activeOrganizationId as string | undefined
+    if (!orgId) throw new Error('No active organization')
+    return { userId: orgId, email: identity.email as string }
+  },
+  server: (process.env.POLAR_SERVER as 'sandbox' | 'production') ?? 'sandbox',
+})

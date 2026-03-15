@@ -1,33 +1,40 @@
 /**
  * Limit enforcement helpers.
  *
- * Each check resolves the org's current plan tier, queries current usage,
- * and throws a ConvexError with structured data if the limit is exceeded.
- * The frontend can catch these to show upgrade CTAs.
- *
- * getOrgPlanTier() is stubbed to "free" — BAS-6 wires in Polar subscription lookup.
+ * Each check resolves the org's current plan tier via Polar subscription,
+ * queries current usage, and throws a ConvexError with structured data
+ * if the limit is exceeded. The frontend can catch these to show upgrade CTAs.
  */
 
 import { ConvexError } from 'convex/values'
-import type { MutationCtx } from '../_generated/server'
+import type { QueryCtx, MutationCtx } from '../_generated/server'
 import type { Id } from '../_generated/dataModel'
-import { type PlanTier, getTierLimits } from './plans'
+import { type PlanTier, PLAN_TIERS, getTierLimits } from './plans'
 import {
   getOrgProjectCount,
   getProjectContentItemCount,
   getOrgMediaStorageBytes,
 } from './usage'
+import { polar } from '../polar'
+
+type Ctx = QueryCtx | MutationCtx
 
 /**
- * Resolve the plan tier for an org.
- * Defaults to "free" until Polar subscription sync is wired (BAS-6).
+ * Resolve the plan tier for an org from their active Polar subscription.
+ * Returns "free" if no active subscription exists.
+ *
+ * The Polar client's product keys (pro/max/enterprise) match our PlanTier names,
+ * so subscription.productKey maps directly to a tier.
  */
 export async function getOrgPlanTier(
-  _ctx: MutationCtx,
-  _orgId: string
+  ctx: Ctx,
+  orgId: string
 ): Promise<PlanTier> {
-  // TODO (BAS-6): query Polar component for active subscription, map product ID → tier
-  return 'free'
+  const sub = await polar.getCurrentSubscription(ctx, { userId: orgId })
+  if (!sub) return 'free'
+
+  const tier = sub.productKey as PlanTier | undefined
+  return tier && tier in PLAN_TIERS ? tier : 'free'
 }
 
 /** Throw if the org has reached its project limit. */

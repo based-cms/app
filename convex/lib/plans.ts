@@ -36,12 +36,3 @@ export function getTierLimits(tier: PlanTier): TierLimits {
   return PLAN_TIERS[tier]
 }
 
-/**
- * Mapping from Polar product IDs → plan tier names.
- * Fill in after creating products in the Polar dashboard (BAS-6).
- */
-export const POLAR_PRODUCT_TO_TIER: Record<string, PlanTier> = {
-  // "pol_product_pro_xxx": "pro",
-  // "pol_product_max_xxx": "max",
-  // "pol_product_ent_xxx": "enterprise",
-}
