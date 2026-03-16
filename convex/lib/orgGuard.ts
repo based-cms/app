@@ -25,20 +25,29 @@ export async function assertOrgAccess(
 }
 
 /**
+ * Returns the orgId from the current Better Auth session, or null if
+ * not yet available. Use in queries so they can gracefully return empty
+ * results during the auth handshake (before the JWT includes the org claim).
+ */
+export async function getOrgId(ctx: QueryCtx | MutationCtx): Promise<string | null> {
+  const identity = await ctx.auth.getUserIdentity()
+  if (!identity) return null
+  const orgId = (identity as Record<string, unknown>)[
+    'activeOrganizationId'
+  ] as string | undefined
+  return orgId ?? null
+}
+
+/**
  * Returns the orgId from the current Better Auth session.
  * Throws if unauthenticated or no org is active.
+ * Use in mutations where the org MUST be present.
  *
  * The `activeOrganizationId` JWT claim is set when the user calls
  * `authClient.organization.setActive()` on the client.
  */
 export async function requireOrgId(ctx: QueryCtx | MutationCtx): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity()
-  if (!identity) {
-    throw new Error('Unauthenticated')
-  }
-  const orgId = (identity as Record<string, unknown>)[
-    'activeOrganizationId'
-  ] as string | undefined
+  const orgId = await getOrgId(ctx)
   if (!orgId) {
     throw new Error('No active organization in session')
   }

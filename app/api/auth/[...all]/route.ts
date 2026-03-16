@@ -2,8 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { handler } from '@/lib/auth-server'
 import { checkRateLimit } from '@/lib/rate-limit'
 
-// 10 requests per minute per IP
-const RATE_LIMIT = 10
+// 60 requests per minute per IP — Better Auth fires multiple requests
+// per page load (session, token refresh, JWKS, org list), so a low limit
+// causes 429s during normal login and navigation.
+const RATE_LIMIT = 60
 const WINDOW_MS = 60_000
 
 function getClientIp(request: NextRequest): string {

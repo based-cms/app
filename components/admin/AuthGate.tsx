@@ -50,7 +50,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [activeOrg?.id, isAuthenticated, isLoading, router])
 
-  if (isLoading || isResolvingOrgRoute || !isAuthenticated) {
+  // Wait for auth + active org before rendering child pages.
+  // Without the activeOrg check, Convex queries fire before the JWT
+  // includes activeOrganizationId, causing "No active organization" errors.
+  if (isLoading || isResolvingOrgRoute || !isAuthenticated || !activeOrg?.id) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />

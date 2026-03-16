@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation, internalQuery, internalMutation } from './_generated/server'
 import { internal } from './_generated/api'
-import { requireOrgId } from './lib/orgGuard'
+import { requireOrgId, getOrgId } from './lib/orgGuard'
 import { requireProjectAccess } from './lib/requireProjectAccess'
 import { validateSlug, validateName } from './lib/validators'
 import { checkProjectLimit } from './lib/checkLimit'
@@ -118,11 +118,13 @@ export const migrateHashTokens = internalMutation({
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-/** List all projects for the current org — strips registrationToken */
+/** List all projects for the current org — strips registrationToken.
+ *  Returns empty array if org isn't in the JWT yet (auth handshake). */
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const orgId = await requireOrgId(ctx)
+    const orgId = await getOrgId(ctx)
+    if (!orgId) return []
     const projects = await ctx.db
       .query('projects')
       .withIndex('by_org', (q) => q.eq('orgId', orgId))

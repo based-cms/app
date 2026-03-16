@@ -5,7 +5,7 @@
 
 import { v } from 'convex/values'
 import { query } from './_generated/server'
-import { requireOrgId } from './lib/orgGuard'
+import { requireOrgId, getOrgId } from './lib/orgGuard'
 import { requireProjectAccess } from './lib/requireProjectAccess'
 import { getOrgPlanTier } from './lib/checkLimit'
 import { getTierLimits } from './lib/plans'
@@ -18,7 +18,8 @@ import {
 /** Org-wide usage summary: project count, total items, storage, plan tier + limits. */
 export const getOrgUsage = query({
   handler: async (ctx) => {
-    const orgId = await requireOrgId(ctx)
+    const orgId = await getOrgId(ctx)
+    if (!orgId) return null
     const tier = await getOrgPlanTier(ctx, orgId)
     const limits = getTierLimits(tier)
 
@@ -43,7 +44,8 @@ export const getOrgUsage = query({
 /** Per-project usage stats for the org dashboard table. */
 export const getProjectsUsage = query({
   handler: async (ctx) => {
-    const orgId = await requireOrgId(ctx)
+    const orgId = await getOrgId(ctx)
+    if (!orgId) return []
     const projects = await ctx.db
       .query('projects')
       .withIndex('by_org', (q) => q.eq('orgId', orgId))

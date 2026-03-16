@@ -63,8 +63,11 @@ export function AdminNav() {
   const { data: session } = authClient.useSession()
 
   // Extract projectId from URL: /admin/:projectId/...
+  // Exclude known org-level routes so they don't get treated as projectIds
+  const ORG_ROUTES = new Set(['analytics', 'billing'])
   const segments = pathname.split('/')
-  const projectId = segments.length >= 3 && segments[2] ? segments[2] : null
+  const rawSegment = segments.length >= 3 ? segments[2] : null
+  const projectId = rawSegment && !ORG_ROUTES.has(rawSegment) ? rawSegment : null
 
   // Skip Convex queries until the auth handshake completes
   const projects = useQuery(

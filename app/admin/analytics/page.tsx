@@ -34,7 +34,7 @@ export default function OrgAnalyticsPage() {
   const usage = useQuery(api.analytics.getOrgUsage)
   const projectsUsage = useQuery(api.analytics.getProjectsUsage)
 
-  if (usage === undefined || projectsUsage === undefined) {
+  if (usage === undefined || usage === null || projectsUsage === undefined) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />

@@ -3,9 +3,9 @@
  * and provides a custom query for the billing dashboard.
  */
 
-import { query } from './_generated/server'
+import { query, action } from './_generated/server'
 import { polar } from './polar'
-import { requireOrgId } from './lib/orgGuard'
+import { getOrgId } from './lib/orgGuard'
 import { getOrgPlanTier } from './lib/checkLimit'
 import { getTierLimits } from './lib/plans'
 import { getOrgProjectCount, getOrgMediaStorageBytes } from './lib/usage'
@@ -23,12 +23,20 @@ export const listAllSubscriptions = polarApi.listAllSubscriptions
 export const changeCurrentSubscription = polarApi.changeCurrentSubscription
 export const cancelCurrentSubscription = polarApi.cancelCurrentSubscription
 
+/** Sync products from Polar API into Convex DB. Call once after creating products in Polar dashboard. */
+export const syncProducts = action({
+  handler: async (ctx) => {
+    await polar.syncProducts(ctx)
+  },
+})
+
 // ─── Custom queries ─────────────────────────────────────────────────────────
 
 /** Returns the current org's plan tier, limits, and usage for the billing page. */
 export const getBillingInfo = query({
   handler: async (ctx) => {
-    const orgId = await requireOrgId(ctx)
+    const orgId = await getOrgId(ctx)
+    if (!orgId) return null
     const tier = await getOrgPlanTier(ctx, orgId)
     const limits = getTierLimits(tier)
     const projectCount = await getOrgProjectCount(ctx, orgId)
