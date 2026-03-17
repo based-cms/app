@@ -14,6 +14,8 @@ import type * as billing from "../billing.js";
 import type * as folders from "../folders.js";
 import type * as http from "../http.js";
 import type * as lib_checkLimit from "../lib/checkLimit.js";
+import type * as lib_email from "../lib/email.js";
+import type * as lib_emailTemplates from "../lib/emailTemplates.js";
 import type * as lib_hash from "../lib/hash.js";
 import type * as lib_orgGuard from "../lib/orgGuard.js";
 import type * as lib_plans from "../lib/plans.js";
@@ -43,6 +45,8 @@ declare const fullApi: ApiFromModules<{
   folders: typeof folders;
   http: typeof http;
   "lib/checkLimit": typeof lib_checkLimit;
+  "lib/email": typeof lib_email;
+  "lib/emailTemplates": typeof lib_emailTemplates;
   "lib/hash": typeof lib_hash;
   "lib/orgGuard": typeof lib_orgGuard;
   "lib/plans": typeof lib_plans;
