@@ -192,15 +192,25 @@ export default function BillingPage() {
 										</a>
 									</Button>
 								) : isUpgrade && productId ? (
-									<CheckoutLink
-										polarApi={api.billing}
-										productIds={[productId]}
-										embed={false}
-									lazy
-										className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-									>
-										Upgrade to {plan.name}
-									</CheckoutLink>
+									currentTier === 'free' ? (
+										<CheckoutLink
+											polarApi={api.billing}
+											productIds={[productId]}
+											embed={false}
+											lazy
+											className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+										>
+											Upgrade to {plan.name}
+										</CheckoutLink>
+									) : (
+										<CustomerPortalLink
+											polarApi={api.billing}
+											className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+										>
+											Upgrade to {plan.name}
+											<ExternalLink className="ml-1.5 h-3 w-3" />
+										</CustomerPortalLink>
+									)
 								) : !isCurrent && currentTier !== 'free' ? (
 									<CustomerPortalLink
 										polarApi={api.billing}
