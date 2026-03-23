@@ -31,6 +31,7 @@ import type * as sectionContent from "../sectionContent.js";
 import type * as sectionRegistry from "../sectionRegistry.js";
 import type * as superadminAnalytics from "../superadminAnalytics.js";
 import type * as superadmins from "../superadmins.js";
+import type * as userProfile from "../userProfile.js";
 
 import type {
   ApiFromModules,
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   sectionRegistry: typeof sectionRegistry;
   superadminAnalytics: typeof superadminAnalytics;
   superadmins: typeof superadmins;
+  userProfile: typeof userProfile;
 }>;
 
 /**

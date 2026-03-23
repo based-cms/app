@@ -64,6 +64,17 @@ export default defineSchema({
     .index('by_r2_key', ['r2Key'])
     .index('by_project_folder', ['projectId', 'folder']),
 
+  // Per-user preferences — username, theme, language
+  user_preferences: defineTable({
+    userId: v.string(),
+    username: v.optional(v.string()),
+    theme: v.optional(v.string()),
+    language: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_username', ['username']),
+
   // Superadmin allowlist — email-based, checked at query time
   superadmins: defineTable({
     email: v.string(),

@@ -61,6 +61,11 @@ export const createAuthOptions = (
       trustedProviders: ['google', 'github'],
     },
   },
+  user: {
+    deleteUser: {
+      enabled: true,
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

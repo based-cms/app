@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, ChevronsUpDown, LogOut } from 'lucide-react'
+import { Check, ChevronsUpDown, LogOut, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const orgTabs = [
@@ -64,7 +64,7 @@ export function AdminNav() {
 
   // Extract projectId from URL: /admin/:projectId/...
   // Exclude known org-level routes so they don't get treated as projectIds
-  const ORG_ROUTES = new Set(['analytics', 'billing'])
+  const ORG_ROUTES = new Set(['analytics', 'billing', 'settings'])
   const segments = pathname.split('/')
   const rawSegment = segments.length >= 3 ? segments[2] : null
   const projectId = rawSegment && !ORG_ROUTES.has(rawSegment) ? rawSegment : null
@@ -73,6 +73,10 @@ export function AdminNav() {
   const projects = useQuery(
     api.projects.list,
     isAuthenticated && !!activeOrg?.id ? {} : 'skip'
+  )
+  const userPrefs = useQuery(
+    api.userProfile.getPreferences,
+    isAuthenticated ? {} : 'skip'
   )
 
   // Derive current project from the list — avoids a separate query and
@@ -131,6 +135,7 @@ export function AdminNav() {
 
   const userName = session?.user?.name ?? session?.user?.email ?? ''
   const userInitial = userName?.[0]?.toUpperCase() ?? '?'
+  const userAvatarUrl = userPrefs?.avatarUrl || session?.user?.image
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background">
@@ -271,14 +276,25 @@ export function AdminNav() {
         {/* Right: user menu */}
         <div className="ml-auto">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold outline-none transition-colors hover:bg-accent">
-              {userInitial}
+            <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold outline-none transition-colors hover:bg-accent overflow-hidden">
+              {userAvatarUrl ? (
+                <img src={userAvatarUrl} alt="" className="h-8 w-8 object-cover" />
+              ) : (
+                userInitial
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <div className="px-2 py-1.5">
                 <p className="truncate text-[13px] font-medium">{session?.user?.name}</p>
                 <p className="truncate text-[11px] text-muted-foreground">{session?.user?.email}</p>
               </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/settings">
+                  <Settings className="mr-2 h-3.5 w-3.5" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void handleSignOut()}>
                 <LogOut className="mr-2 h-3.5 w-3.5" />
@@ -289,8 +305,8 @@ export function AdminNav() {
         </div>
       </div>
 
-      {/* Tab row — org-level or project-level */}
-      <div className="-mb-px flex items-end gap-1 px-4">
+      {/* Tab row — org-level or project-level (hidden on settings pages) */}
+      {!pathname.startsWith('/admin/settings') && <div className="-mb-px flex items-end gap-1 px-4">
         {(projectId ? projectTabs : orgTabs).map((tab) => {
           const href = projectId
             ? `/admin/${projectId}${tab.path}`
@@ -311,7 +327,7 @@ export function AdminNav() {
             </Link>
           )
         })}
-      </div>
+      </div>}
     </header>
   )
 }
