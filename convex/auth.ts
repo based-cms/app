@@ -1,7 +1,7 @@
 import { createClient, type GenericCtx } from '@convex-dev/better-auth'
 import { convex } from '@convex-dev/better-auth/plugins'
 import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal'
-import { organization } from 'better-auth/plugins'
+import { organization, oneTap, lastLoginMethod } from 'better-auth/plugins'
 import { emailOTP } from 'better-auth/plugins/email-otp'
 import { magicLink } from 'better-auth/plugins/magic-link'
 import { sendEmail } from './lib/email'
@@ -44,6 +44,23 @@ export const createAuthOptions = (
   baseURL: siteUrl,
   trustedOrigins: [siteUrl],
   database: authComponent.adapter(ctx),
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      prompt: 'select_account',
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID ?? '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['google', 'github'],
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -115,6 +132,8 @@ export const createAuthOptions = (
       },
       expiresIn: 300,
     }),
+    oneTap(),
+    lastLoginMethod(),
   ],
 })
 
